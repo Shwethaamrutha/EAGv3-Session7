@@ -64,7 +64,7 @@ class GatewayClient:
             import openai
             self.nvidia_client = openai.OpenAI(base_url=NVIDIA_BASE_URL, api_key=self.nvidia_key)
 
-        # Bedrock via API key (set AWS_BEARER_TOKEN_BEDROCK in .env)
+        # Bedrock: try API key first, then profile-based credentials (aws login)
         self.bedrock = None
         try:
             import boto3
@@ -77,7 +77,9 @@ class GatewayClient:
                 )
             else:
                 session = boto3.Session(profile_name=self.aws_profile, region_name=self.aws_region)
-                self.bedrock = session.client("bedrock-runtime")
+                # Verify credentials exist before creating client
+                if session.get_credentials():
+                    self.bedrock = session.client("bedrock-runtime")
         except Exception:
             pass
 
@@ -197,7 +199,7 @@ class GatewayClient:
         kwargs: dict[str, Any] = {
             "modelId": BEDROCK_MODEL,
             "messages": bedrock_messages,
-            "inferenceConfig": {"temperature": temperature, "maxTokens": 512},
+            "inferenceConfig": {"temperature": temperature, "maxTokens": 2048},
         }
 
         if system_text:

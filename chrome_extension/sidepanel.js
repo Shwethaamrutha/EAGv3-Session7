@@ -27,7 +27,12 @@ function addMessage(role, text, sources) {
 
   const msg = document.createElement("div");
   msg.className = `msg ${role}`;
-  msg.textContent = text;
+
+  if (role === "bot" && typeof marked !== "undefined") {
+    msg.innerHTML = marked.parse(text);
+  } else {
+    msg.textContent = text;
+  }
 
   if (sources && sources.length > 0) {
     const srcDiv = document.createElement("div");

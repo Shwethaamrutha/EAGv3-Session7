@@ -115,12 +115,12 @@ async def index_page(req: IndexRequest):
 @app.post("/query")
 async def query_knowledge(req: QueryRequest):
     """Answer a question from the FAISS-indexed knowledge base."""
-    hits = memory.read(req.query, [], kinds=["fact"], top_k=8)
+    hits = memory.read(req.query, [], kinds=["fact"], top_k=12)
 
     if not hits:
         return {"answer": "No relevant content found. Index some pages first!", "sources": []}
 
-    # Build context from chunks
+    # Build context from chunks — use all hits for broad coverage
     context_parts = []
     sources = set()
     for h in hits:
@@ -131,11 +131,11 @@ async def query_knowledge(req: QueryRequest):
         if source:
             sources.add(source)
 
-    context = "\n\n---\n\n".join(context_parts[:5])
+    context = "\n\n---\n\n".join(context_parts)
 
     # Ask LLM to synthesize
     messages = [
-        {"role": "system", "content": "You are a research assistant. Answer the user's question using ONLY the provided context. Be concise and cite which source each claim comes from. If the context doesn't contain the answer, say so."},
+        {"role": "system", "content": "You are a research assistant. Answer the user's question using ONLY the provided context. Use markdown formatting for readability (headers, bullet points, bold). Be thorough — cover key points from all provided chunks. If the context doesn't contain the answer, say so."},
         {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {req.query}"},
     ]
 
