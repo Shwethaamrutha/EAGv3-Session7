@@ -14,11 +14,19 @@ btn.addEventListener("click", async () => {
   btn.classList.add("indexing");
 
   // Extract page content
-  const content = document.body.innerText;
+  let content = document.body.innerText;
+  const url = window.location.href;
+
+  // For PDF pages or pages with very little text, send URL for server-side extraction
+  const isPdf = url.endsWith(".pdf") || document.contentType === "application/pdf";
+  if (isPdf || content.trim().length < 200) {
+    content = "__FETCH_URL__";
+  }
+
   const data = {
-    url: window.location.href,
-    title: document.title,
-    content: content.substring(0, 50000), // Cap at 50K chars
+    url: url,
+    title: document.title || url.split("/").pop(),
+    content: content.substring(0, 50000),
   };
 
   const result = await chrome.runtime.sendMessage({ type: "INDEX_PAGE", data });

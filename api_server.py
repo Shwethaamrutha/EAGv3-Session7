@@ -32,10 +32,51 @@ class QueryRequest(BaseModel):
     query: str
 
 
+async def fetch_page_content(url: str) -> str:
+    """Fetch and extract text from a URL server-side (handles PDFs, blocked pages)."""
+    import httpx
+    try:
+        # For arxiv PDFs, use the HTML version (full paper text)
+        if "arxiv.org/pdf/" in url:
+            url = url.replace("/pdf/", "/html/").replace(".pdf", "")
+        elif "arxiv.org/abs/" in url:
+            url = url.replace("/abs/", "/html/")
+
+        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0 (compatible; RAGAssistant/1.0)"})
+            resp.raise_for_status()
+            html = resp.text
+
+            try:
+                from readability import Document
+                from markdownify import markdownify as md
+                doc = Document(html)
+                clean_html = doc.summary()
+                text = md(clean_html, heading_style="ATX", strip=["img", "svg"])
+                title = doc.title()
+                return f"# {title}\n\n{text}" if title else text
+            except ImportError:
+                import re
+                text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL)
+                text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL)
+                text = re.sub(r"<[^>]+>", " ", text)
+                return text
+    except Exception as e:
+        return f"Error fetching {url}: {e}"
+
+
 @app.post("/index")
 async def index_page(req: IndexRequest):
     """Chunk and index a webpage into FAISS."""
-    words = req.content.split()
+    content = req.content
+
+    # Server-side fetch when client couldn't extract content (PDFs, etc.)
+    if content == "__FETCH_URL__" or len(content.split()) < 20:
+        content = await fetch_page_content(req.url)
+        if content.startswith("Error"):
+            return {"error": content, "chunks": 0}
+
+    words = content.split()
     if len(words) < 20:
         return {"error": "Page has too little content", "chunks": 0}
 
