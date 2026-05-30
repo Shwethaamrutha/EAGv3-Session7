@@ -199,7 +199,7 @@ class GatewayClient:
         kwargs: dict[str, Any] = {
             "modelId": BEDROCK_MODEL,
             "messages": bedrock_messages,
-            "inferenceConfig": {"temperature": temperature, "maxTokens": 2048},
+            "inferenceConfig": {"temperature": temperature, "maxTokens": 1024},
         }
 
         if system_text:
@@ -304,6 +304,26 @@ class GatewayClient:
                 "inputSchema": {"json": params if params else {"type": "object", "properties": {}}},
             }
         }
+
+    def chat_stream(self, messages: list[dict], *, temperature: float = 0.3):
+        """Stream response tokens from Bedrock. Yields text chunks."""
+        bedrock_messages, system_text = self._convert_messages(messages)
+        kwargs: dict[str, Any] = {
+            "modelId": BEDROCK_MODEL,
+            "messages": bedrock_messages,
+            "inferenceConfig": {"temperature": temperature, "maxTokens": 1024},
+        }
+        if system_text:
+            kwargs["system"] = [{"text": system_text}]
+        try:
+            response = self.bedrock.converse_stream(**kwargs)
+            for event in response["stream"]:
+                if "contentBlockDelta" in event:
+                    delta = event["contentBlockDelta"].get("delta", {})
+                    if "text" in delta:
+                        yield delta["text"]
+        except Exception as e:
+            yield f"[error: {e}]"
 
     def _call_gemini_chat(
         self, messages, tools, tool_choice, response_format, temperature

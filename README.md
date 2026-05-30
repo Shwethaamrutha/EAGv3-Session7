@@ -90,15 +90,22 @@ Additionally, 5 base papers in `state/sandbox/papers/`:
 
 ## Custom Query Traces (with vs without corpus)
 
+**Corpus:** 5 arxiv papers on parameter-efficient fine-tuning (61 chunks total)
+- LoRA (original, 2106.09685)
+- LoRA vs Full Fine-tuning: An Illusion of Equivalence (2410.21228)
+- LoRA vs Full Fine-Tuning: A Theoretical Perspective (2605.19018)
+- QDyLoRA: Quantized Dynamic Low-Rank Adaptation (2402.10462)
+- Comparison between PEFT techniques and full fine-tuning (2308.07282)
+
 | # | Query | With Index | Without Index | Semantic? |
 |---|-------|-----------|---------------|-----------|
-| 1 | "What approaches exist for preventing AI hallucinations during retrieval?" | 4 iters (FAISS) | 7 iters (web) | Yes |
-| 2 | "How do modern systems decide which model to route a request to?" | 2 iters (FAISS) | 11 iters (web) | Yes |
-| 3 | "What are the tradeoffs between storing agent state in-process versus on disk?" | 2 iters (FAISS) | 1 iter (generic) | Yes |
-| 4 | "How do researchers measure whether an LLM truly understands what it generates?" | 3 iters (FAISS) | 12 iters (web) | Yes |
-| 5 | "What techniques allow smaller models to match the performance of larger ones?" | 7 iters (FAISS) | 11 iters (web) | Yes |
+| 1 | "What are intruder dimensions and how do they relate to forgetting in fine-tuned models?" | 1 iter, 15s (FAISS) | 7 iters, ~60s (web search → fetch → index) | Yes — "forgetting" maps to "catastrophic interference" |
+| 2 | "How does QDyLoRA handle the rank selection problem differently from standard LoRA?" | 1 iter, 9s (FAISS) | 3 iters, ~30s (web search → fetch) | No — direct keyword match |
+| 3 | "What specific evidence shows that LoRA and full fine-tuning learn different solutions in weight space?" | 1 iter, 10s (FAISS) | Web search required | Yes — "different solutions" maps to "intruder dimensions" and "spectral analysis" |
+| 4 | "What happens when you scale down intruder dimensions in continual fine-tuning?" | 1 iter, 8s (FAISS) | Web search required | Yes — "scale down" maps to "ablation" and "reduced forgetting" |
+| 5 | "According to the comparison paper, which parameter-efficient method performs closest to full fine-tuning on generation tasks?" | 1 iter, 7s (FAISS) | Web search required | No — but answer is paper-specific (can't be guessed) |
 
-**Key finding:** With the corpus indexed, queries answer in 2-7 iterations from FAISS vector search with domain-specific grounded answers. Without the corpus, the agent must fall back to web search (7-12 iterations) or provides only generic knowledge without the depth from the indexed sources.
+**Key finding:** With the corpus indexed, all queries answer in 1 iteration via FAISS vector search. Without the corpus, the agent must search the web, fetch papers, and index them first (3-7 iterations, 30-60s). Queries 1, 3, and 4 demonstrate semantic recall — the query terms don't appear literally in the chunks that answer them.
 
 ## How to Run
 
@@ -110,29 +117,37 @@ ollama pull nomic-embed-text      # local embeddings (768-d)
 
 ### Environment (.env)
 ```
-AWS_BEARER_TOKEN_BEDROCK=your-bedrock-api-key
 NVIDIA_API_KEY=your-nvidia-key        # free tier fallback
 GEMINI_API_KEY=your-gemini-key        # embedding fallback
 TAVILY_API_KEY=your-tavily-key        # web search
 ```
 
-### Build corpus (one-time)
+### Chrome Extension (RAG App)
 ```bash
-python build_corpus.py
+# 1. Start the API server
+python api_server.py              # runs on http://localhost:8080
+
+# 2. Load extension in Chrome
+#    chrome://extensions → Developer mode → Load unpacked → select chrome_extension/
+
+# 3. Open dashboard in browser
+#    http://localhost:8080         # live pipeline visualization
+
+# 4. Use the extension
+#    - Click + on any page to index it
+#    - Open side panel to chat across indexed pages
+#    - Dashboard shows live FAISS retrieval logs
 ```
 
-### Run interactively
+### Terminal (Base Queries A-H)
 ```bash
 python chat.py              # interactive REPL with iteration traces
-python chatbot.py           # web UI at http://localhost:8000
 python agent6.py "query"    # one-shot CLI
 ```
 
-### Test queries
-```bash
-python chat.py "What do the indexed papers say about agent memory?"
-python chat.py "How does DPO compare to RLHF?"
-python chat.py "What techniques exist for semantic search?"
+### Commands in extension chat
+```
+/clear                      # wipe all indexed data and FAISS state
 ```
 
 ## File Structure

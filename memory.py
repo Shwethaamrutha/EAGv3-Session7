@@ -208,7 +208,7 @@ class MemoryService:
         for i in range(actual_k):
             pos = int(positions[0][i])
             score = float(scores[0][i])
-            if pos < 0 or score < 0.1:
+            if pos < 0 or score < 0.3:
                 continue
             if pos < len(ids):
                 item_id = ids[pos]
@@ -218,10 +218,19 @@ class MemoryService:
         return results
 
     def read(self, query: str, history: list[dict], kinds: list[str] | None = None, top_k: int = 8) -> list[MemoryItem]:
-        # Vector-first path
+        # Vector-first path with relevance gate
         vector_results = self._vector_search(query, top_k, kinds=kinds)
         if vector_results:
-            return vector_results[:top_k]
+            # Check if top result is actually relevant by verifying keyword overlap
+            query_tokens = self._tokenize(query)
+            top_item = vector_results[0]
+            item_tokens = set(top_item.keywords) | self._tokenize(top_item.descriptor)
+            overlap = len(query_tokens & item_tokens)
+            # If zero keyword overlap AND this is a fact chunk, the vector match is spurious
+            if overlap == 0 and top_item.kind == "fact" and top_item.value.get("chunk"):
+                pass  # Skip vector results, fall through to keyword search
+            else:
+                return vector_results[:top_k]
 
         # Keyword fallback
         self._load()

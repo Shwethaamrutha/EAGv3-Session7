@@ -48,7 +48,30 @@ async function queryKnowledge(query) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
     });
-    return await resp.json();
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    let sources = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === "token") {
+            fullText += data.text;
+          } else if (data.type === "sources") {
+            sources = data.sources;
+          }
+        }
+      }
+    }
+
+    return { answer: fullText, sources };
   } catch (e) {
     return { error: e.message };
   }
