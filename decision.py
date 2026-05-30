@@ -162,15 +162,12 @@ def next_step(
     # Determine if this is a FINAL synthesis/recommendation goal (combines multiple sources)
     goal_is_synthesis = any(kw in goal.text.lower() for kw in SYNTHESIS_KEYWORDS)
 
-    # Never disable tools when the goal explicitly requires fetching/indexing
-    goal_requires_action = any(kw in goal.text.lower() for kw in ["fetch", "index", "search for", "create", "http"])
-
     # Force answer (no tools) when:
     # 1. Artifacts attached and no pending URLs to fetch
     # 2. This is a FINAL synthesis goal (not intermediate) and sufficient data exists
     has_sufficient_data = sum(1 for h in hits if h.kind == "tool_outcome") >= 2
 
-    if not goal_requires_action and ((attached and not unfetched) or (goal_is_synthesis and has_sufficient_data)):
+    if (attached and not unfetched) or (goal_is_synthesis and has_sufficient_data):
         use_tools = None
         tools_text = "(tools disabled — answer using MEMORY HITS and any ATTACHED ARTIFACTS)"
         pending_urls_text = ""
