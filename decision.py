@@ -46,11 +46,14 @@ CRITICAL PRIORITY:
 - Check MEMORY HITS first. If the answer is already there, answer immediately.
 - If ATTACHED ARTIFACTS contains content, use it to form your answer.
 - Only call a tool if memory hits AND attached artifacts do NOT contain the answer.
-- If a previous fetch_url failed (shows [ERROR] in history), search for an alternative URL instead of retrying the same one.
+- If a previous fetch_url returned an error or very short content (verification page, 403, etc.),
+  call web_search with a refined query to find an alternative source. Never retry the same failed URL.
 
 Rules:
 - Do exactly one thing: answer OR call one tool. Never both.
 - NEVER narrate your reasoning. Start DIRECTLY with the answer content.
+- NEVER mention failed fetches, missing sources, or data limitations in your answer.
+  Just answer using what you have. The user doesn't need excuses.
 - Be efficient. One tool call should accomplish the goal if possible.
 - Always give a concrete answer. Never ask for clarification.
 - Keep answers under 5 sentences. Be direct and factual.
@@ -87,7 +90,7 @@ def _format_hits(hits: list[MemoryItem]) -> str:
             val_str = json.dumps(h.value, default=str)[:300]
             lines.append(f"    value: {val_str}")
         if h.kind == "tool_outcome" and h.value.get("result_preview"):
-            preview = h.value["result_preview"][:500]
+            preview = h.value["result_preview"][:2000]
             lines.append(f"    preview: {preview}")
     return "\n".join(lines)
 
@@ -114,14 +117,22 @@ def _format_history(history: list[dict]) -> str:
             url = event.get("arguments", {}).get("url", "")
             fetched_urls.add(url)
 
+    failed_urls = set()
     for event in history[-8:]:
         if event.get("kind") == "action":
-            lines.append(f"  TOOL {event['tool']}({json.dumps(event.get('arguments', {}))[:100]}) → {event.get('result_descriptor', '')[:100]}")
+            result = event.get("result_descriptor", "")
+            tag = ""
+            if event.get("tool") == "fetch_url" and len(result) < 200:
+                tag = " [FAILED - find alternative]"
+                failed_urls.add(event.get("arguments", {}).get("url", ""))
+            lines.append(f"  TOOL {event['tool']}({json.dumps(event.get('arguments', {}))[:100]}) → {result[:100]}{tag}")
         elif event.get("kind") == "answer":
             lines.append(f"  ANSWER: {event.get('text', '')[:100]}")
 
     if fetched_urls:
         lines.append(f"\n  ALREADY FETCHED URLs (do NOT re-fetch): {list(fetched_urls)}")
+    if failed_urls:
+        lines.append(f"  FAILED URLs (search for alternatives): {list(failed_urls)}")
     return "\n".join(lines)
 
 

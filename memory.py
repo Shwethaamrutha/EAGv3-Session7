@@ -180,13 +180,21 @@ class MemoryService:
         ids.append(item_id)
         self._save_faiss_index(index, ids)
 
+    _query_embed_cache: dict = {}
+
     def _vector_search(self, query: str, k: int, kinds: list[str] | None = None) -> list[MemoryItem]:
         """Run vector search over FAISS index, return matching MemoryItems."""
         import faiss
         index, ids = self._load_faiss_index()
         if index is None or index.ntotal == 0:
             return []
-        embedding = _try_embed(query, task_type="retrieval_query")
+        # Cache query embeddings — same query doesn't need re-embedding
+        if query in self._query_embed_cache:
+            embedding = self._query_embed_cache[query]
+        else:
+            embedding = _try_embed(query, task_type="retrieval_query")
+            if embedding is not None:
+                self._query_embed_cache[query] = embedding
         if embedding is None:
             return []
         vec = np.array([embedding], dtype="float32")
@@ -343,7 +351,7 @@ class MemoryService:
             value={
                 "tool": tool_call.name,
                 "arguments": tool_call.arguments,
-                "result_preview": result_text[:2000],
+                "result_preview": result_text[:4000],
             },
             embedding=embedding,
             artifact_id=artifact_id,

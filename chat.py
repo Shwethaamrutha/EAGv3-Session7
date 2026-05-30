@@ -137,6 +137,7 @@ async def _run_loop(query, run_id, history, prior_goals, session, mcp_tools):
     """Inner loop — output matches the course trace format exactly."""
     # Column width for aligned prefix (16 chars)
     P = 16
+    last_history_len = 0
 
     for it in range(1, settings.max_iterations + 1):
         print(f"\n{GRAY}{'─'*3} iter {it} {'─'*3}{RESET}")
@@ -144,10 +145,13 @@ async def _run_loop(query, run_id, history, prior_goals, session, mcp_tools):
         hits = memory.read(query, history)
         print(f"{BLUE}{'[memory.read]':<{P}}{RESET}{len(hits)} hits")
 
-        think("perception", "Analyzing goals...")
-        obs = perception.observe(query, hits, history, prior_goals, run_id)
-        done()
-        prior_goals = obs.goals
+        # Skip Perception if no new history since last call (avoids redundant LLM call)
+        if len(history) > last_history_len or it == 1:
+            think("perception", "Analyzing goals...")
+            obs = perception.observe(query, hits, history, prior_goals, run_id)
+            done()
+            prior_goals = obs.goals
+            last_history_len = len(history)
 
         # Determine which goal is currently being worked on
         next_goal = obs.next_unfinished()

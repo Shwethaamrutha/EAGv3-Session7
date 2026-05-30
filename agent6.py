@@ -83,6 +83,7 @@ async def run(query: str) -> str:
         mcp_tools = await load_tools(session)
         log.info("mcp_connected", tool_count=len(mcp_tools))
 
+        last_history_len = 0
         for it in range(1, settings.max_iterations + 1):
             log.info("iteration_start", iter=it, run_id=run_id)
 
@@ -90,9 +91,11 @@ async def run(query: str) -> str:
             hits = memory.read(query, history)
             log.info("memory_read", count=len(hits))
 
-            # Step 2: Perception
-            obs = perception.observe(query, hits, history, prior_goals, run_id)
-            prior_goals = obs.goals
+            # Step 2: Perception — skip if no new history since last call
+            if len(history) > last_history_len or it == 1:
+                obs = perception.observe(query, hits, history, prior_goals, run_id)
+                prior_goals = obs.goals
+                last_history_len = len(history)
 
             for i, g in enumerate(obs.goals):
                 status = "done" if g.done else "open"

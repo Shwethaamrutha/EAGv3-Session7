@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     # Agent loop
     max_iterations: int = 25
-    artifact_threshold_bytes: int = 4096
+    artifact_threshold_bytes: int = 8000
     attachment_budget_bytes: int = 50000
     fetch_content_limit: int = 80000
 

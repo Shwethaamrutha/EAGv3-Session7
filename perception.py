@@ -44,6 +44,11 @@ Completion rules:
 - A goal is done when the history contains a tool result or answer that satisfies it.
 - Mark goals done based on what information is NOW available, not what is perfect.
 - Once done, a goal remains done permanently.
+- A web_search result that returns full article content (marked with char counts) counts as BOTH
+  searching AND reading. No separate fetch is needed when content is already available.
+- When MEMORY HITS already contain indexed chunks with the information needed to answer,
+  create a SINGLE goal to synthesize the answer. Do NOT create goals to "retrieve" or "read"
+  content that is already present in the memory hits — just use it directly.
 
 Artifact attachment:
 - Set artifact_index to a valid MEMORY HITS index when the next goal needs raw content
@@ -183,23 +188,27 @@ def observe(
                     g.done = True
 
         # Enforce multi-fetch goals: if a goal says "read/fetch top N",
-        # don't mark done until N distinct SUCCESSFUL fetch_url calls exist in history
+        # don't mark done until N distinct SUCCESSFUL fetches exist in history.
+        # Skip enforcement if web_search already returned rich content.
         import re
-        for g in goals:
-            if g.done:
-                match = re.search(r'(?:read|fetch|get|visit)\s+(?:the\s+)?(?:top\s+)?(\d+)', g.text.lower())
-                if match:
-                    required_count = int(match.group(1))
-                    fetch_actions = [
-                        e for e in history
-                        if e.get("kind") == "action" and e.get("tool") == "fetch_url"
-                        and not e.get("result_descriptor", "").startswith("[ERROR]")
-                        and not e.get("result_descriptor", "").startswith("[error]")
-                        and len(e.get("result_descriptor", "")) > 200
-                    ]
-                    distinct_urls = len(set(e.get("arguments", {}).get("url", "") for e in fetch_actions))
-                    if distinct_urls < required_count:
-                        g.done = False
+        has_rich_search = any(
+            e.get("kind") == "action" and e.get("tool") == "web_search"
+            for e in history
+        )
+        if not has_rich_search:
+            for g in goals:
+                if g.done:
+                    match = re.search(r'(?:read|fetch|get|visit).*?(\d+)', g.text.lower())
+                    if match:
+                        required_count = int(match.group(1))
+                        successful_fetches = [
+                            e for e in history
+                            if e.get("kind") == "action" and e.get("tool") == "fetch_url"
+                            and len(e.get("result_descriptor", "")) > 200
+                        ]
+                        distinct_urls = len(set(e.get("arguments", {}).get("url", "") for e in successful_fetches))
+                        if distinct_urls < required_count:
+                            g.done = False
 
         # Force-attach for final synthesis/extraction goals only
         # NOT for search/find/check goals which just need tool calls

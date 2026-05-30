@@ -31,24 +31,27 @@ SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @mcp.tool()
-async def web_search(query: str, max_results: int = 3) -> str:
-    """Search the web. Returns top results with titles, URLs, and content snippets."""
+async def web_search(query: str, max_results: int = 5) -> str:
+    """Search the web using Tavily with full page content. Returns titles, URLs,
+    and complete article text for each result. This is usually sufficient for
+    synthesis — only use fetch_url for URLs not found via search."""
     max_results = int(max_results)
 
-    # Primary: Tavily (best snippets, AI-optimized)
+    # Primary: Tavily with raw content (bypasses scraper-blocking sites)
     tavily_key = os.getenv("TAVILY_API_KEY", "")
     if tavily_key:
         try:
             from tavily import TavilyClient
             client = TavilyClient(api_key=tavily_key)
-            response = client.search(query, max_results=max_results)
+            response = client.search(query, max_results=max_results, search_depth="advanced", include_raw_content=True)
             results = response.get("results", [])
             if results:
                 lines = []
                 for r in results:
                     lines.append(f"Title: {r.get('title', '')}")
                     lines.append(f"URL: {r.get('url', '')}")
-                    lines.append(f"Snippet: {r.get('content', '')[:300]}")
+                    raw = r.get("raw_content", "") or r.get("content", "")
+                    lines.append(f"Content ({len(raw)} chars):\n{raw[:3000]}")
                     lines.append("")
                 return "\n".join(lines)
         except Exception:
