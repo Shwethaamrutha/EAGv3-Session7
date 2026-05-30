@@ -195,6 +195,7 @@ def observe(
                         if e.get("kind") == "action" and e.get("tool") == "fetch_url"
                         and not e.get("result_descriptor", "").startswith("[ERROR]")
                         and not e.get("result_descriptor", "").startswith("[error]")
+                        and len(e.get("result_descriptor", "")) > 200
                     ]
                     distinct_urls = len(set(e.get("arguments", {}).get("url", "") for e in fetch_actions))
                     if distinct_urls < required_count:
