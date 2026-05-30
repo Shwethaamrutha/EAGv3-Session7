@@ -183,7 +183,7 @@ def observe(
                     g.done = True
 
         # Enforce multi-fetch goals: if a goal says "read/fetch top N",
-        # don't mark done until N distinct fetch_url calls exist in history
+        # don't mark done until N distinct SUCCESSFUL fetch_url calls exist in history
         import re
         for g in goals:
             if g.done:
@@ -193,6 +193,8 @@ def observe(
                     fetch_actions = [
                         e for e in history
                         if e.get("kind") == "action" and e.get("tool") == "fetch_url"
+                        and not e.get("result_descriptor", "").startswith("[ERROR]")
+                        and not e.get("result_descriptor", "").startswith("[error]")
                     ]
                     distinct_urls = len(set(e.get("arguments", {}).get("url", "") for e in fetch_actions))
                     if distinct_urls < required_count:

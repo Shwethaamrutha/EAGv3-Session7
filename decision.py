@@ -46,6 +46,7 @@ CRITICAL PRIORITY:
 - Check MEMORY HITS first. If the answer is already there, answer immediately.
 - If ATTACHED ARTIFACTS contains content, use it to form your answer.
 - Only call a tool if memory hits AND attached artifacts do NOT contain the answer.
+- If a previous fetch_url failed (shows [ERROR] in history), search for an alternative URL instead of retrying the same one.
 
 Rules:
 - Do exactly one thing: answer OR call one tool. Never both.
