@@ -187,14 +187,19 @@ async def _run_loop(query, run_id, history, prior_goals, session, mcp_tools):
 
         if is_synthesis:
             seen_arts = set()
-            goal_tokens = set(goal_lower.split())
+            # Attach artifacts produced in this run (from history)
+            for event in history:
+                art_id = event.get("artifact_id")
+                if art_id and art_id not in seen_arts and artifact_store.exists(art_id):
+                    blob = artifact_store.get_bytes(art_id)
+                    attached.append((art_id, blob))
+                    seen_arts.add(art_id)
+            # Also attach from memory hits if from current run
             for h in hits:
-                if h.artifact_id and h.artifact_id not in seen_arts and artifact_store.exists(h.artifact_id):
-                    item_tokens = set(h.descriptor.lower().split()) | set(k.lower() for k in h.keywords)
-                    if goal_tokens & item_tokens:
-                        blob = artifact_store.get_bytes(h.artifact_id)
-                        attached.append((h.artifact_id, blob))
-                        seen_arts.add(h.artifact_id)
+                if h.artifact_id and h.artifact_id not in seen_arts and h.run_id == run_id and artifact_store.exists(h.artifact_id):
+                    blob = artifact_store.get_bytes(h.artifact_id)
+                    attached.append((h.artifact_id, blob))
+                    seen_arts.add(h.artifact_id)
             if attached:
                 print(f"{PURPLE}{'[attach]':<{P}}{RESET}{len(attached)} artifacts for synthesis")
         elif goal.attach_artifact_id and artifact_store.exists(goal.attach_artifact_id):
