@@ -130,6 +130,9 @@
 | G | "Credit assignment" semantic recall | 2 |
 | H | ReAct vs CoT cross-document synthesis | 2 |
 
+
+---
+
 <details><summary><b> Click to expand: Base Query Screenshots (A-H) </b></summary>
 
 ---
@@ -195,6 +198,8 @@
 ---
 
 </details>
+
+---
 
 ## Custom RAG Queries (with vs without corpus)
 
@@ -272,6 +277,7 @@
 
 </details>
 
+---
 
 ## How to Run
 
