@@ -50,18 +50,92 @@ memory.record_outcome() ---> stored in memory.json (not FAISS)
 
 ## Base Query Traces (A-H)
 
-| Query | Description | Iterations | Result |
-|-------|-------------|-----------|--------|
-| A | Shannon Wikipedia (fetch + extract) | 2 | PASS |
-| B | Tokyo activities + weather (multi-goal) | 3 | PASS |
-| C Run 1 | Mom's birthday (remember + create) | 4 | PASS |
-| C Run 2 | Recall birthday (FAISS retrieval) | 1 | PASS |
-| D | Asyncio synthesis (web search + synthesize) | 2 | PASS |
-| E | Index attention.md + extract contributions | 3 | PASS |
-| F Run 1 | Index all 5 papers | 5 | PASS |
-| F Run 2 | Cross-run recall (persisted FAISS) | 2 | PASS |
-| G | "Credit assignment" semantic recall | 2 | PASS |
-| H | ReAct vs CoT cross-document synthesis | 2 | PASS |
+### Query A — Shannon Wikipedia (2 iterations)
+```
+[memory]     Iter 1: memory.read() → 0 hits
+[decision]   TOOL: fetch_url({"url": "https://en.wikipedia.org/wiki/Claude_Shannon"})
+[action]     fetch_url → [artifact, 80201 bytes]
+[memory]     Iter 2: memory.read() → 1 hits
+[decision]   ANSWER: **Claude Shannon — Key Facts**
+```
+
+### Query B — Tokyo Activities + Weather (3 iterations)
+```
+[memory]     Iter 1: memory.read() → 0 hits
+[decision]   TOOL: web_search({"query": "family-friendly things to do in Tokyo..."})
+[action]     web_search → [artifact, 15905 bytes]
+[memory]     Iter 2: memory.read() → 2 hits
+[decision]   TOOL: fetch_url({"url": "https://wttr.in/Tokyo?format=3"})
+[action]     fetch_url → # wttr.in - Weather Report
+[memory]     Iter 3: memory.read() → 3 hits
+[decision]   ANSWER: Tokyo +20°C sunny. Recommended: outdoor activity...
+```
+
+### Query C — Memory Persistence (Run 1: 4 iters, Run 2: 1 iter)
+```
+Run 1:
+[memory]     memory.remember() → stored [fact] Mom's birthday May 15, 2026
+[decision]   TOOL: create_file({"path": "mom_birthday_reminder_2weeks.ics"...})
+[decision]   TOOL: create_file({"path": "mom_birthday_reminder_ontheday.ics"...})
+
+Run 2 (fresh process):
+[memory]     Iter 1: memory.read() → 2 hits (FAISS)
+[decision]   ANSWER: Your mom's birthday is **May 15, 2026**.
+```
+
+### Query D — Asyncio Synthesis (2 iterations)
+```
+[memory]     Iter 1: memory.read() → 0 hits
+[decision]   TOOL: web_search({"query": "Python asyncio best practices"})
+[action]     web_search → [artifact, 8820 bytes] (full Tavily content)
+[memory]     Iter 2: memory.read() → 5 hits
+[decision]   ANSWER: **Python asyncio Best Practices (Common Advice Across Sources)**
+```
+
+### Query E — Index + Extract (3 iterations)
+```
+[memory]     Iter 1: memory.read() → 1 hits
+[decision]   TOOL: index_document({"path": "papers/attention.md"})
+[action]     index_document → Indexed 3 chunks
+[memory]     Iter 2: memory.read() → 3 hits (FAISS)
+[decision]   TOOL: search_knowledge({"query": "key contributions Transformer architecture"})
+[action]     search_knowledge → [sandbox:papers/attention.md chunk 2/3]
+[memory]     Iter 3: memory.read() → 3 hits (FAISS)
+[decision]   ANSWER: ## Three Key Contributions of the Transformer Architecture
+```
+
+### Query F — Index All + Cross-Run (Run 1: 5 iters, Run 2: 2 iters)
+```
+Run 1:
+[decision]   TOOL: index_document({"path": "papers/cot.md"})     → 2 chunks
+[decision]   TOOL: index_document({"path": "papers/dpo.md"})     → 21 chunks
+[decision]   TOOL: index_document({"path": "papers/lora.md"})    → 6 chunks
+[decision]   TOOL: index_document({"path": "papers/react.md"})   → 2 chunks
+
+Run 2 (/new — fresh process, persisted FAISS):
+[memory]     Iter 1: memory.read() → 5 hits (FAISS)
+[decision]   TOOL: search_knowledge({"query": "chain-of-thought reasoning..."})
+[decision]   ANSWER: ## Chain-of-Thought Reasoning: Synthesis from Indexed Papers
+```
+
+### Query G — Semantic Recall: "Credit Assignment" (2 iterations)
+```
+[memory]     Iter 1: memory.read() → 5 hits (FAISS)
+[decision]   TOOL: search_knowledge({"query": "credit assignment problem"})
+[action]     search_knowledge → [sandbox:papers/cot.md chunk 1/2] (backpropagation through reasoning)
+[memory]     Iter 2: memory.read() → 5 hits (FAISS)
+[decision]   ANSWER: ## Credit Assignment Across the Indexed Papers
+```
+*Note: "credit assignment" does NOT appear in any chunk. FAISS finds it via semantic similarity to "reward shaping" (DPO) and "backpropagation through reasoning steps" (CoT).*
+
+### Query H — Cross-Document Synthesis (2 iterations)
+```
+[memory]     Iter 1: memory.read() → 5 hits (FAISS)
+[decision]   TOOL: search_knowledge({"query": "intermediate reasoning treatment..."})
+[action]     search_knowledge → [sandbox:papers/react.md chunk 0/2], [sandbox:papers/cot.md chunk 1/2]
+[memory]     Iter 2: memory.read() → 5 hits (FAISS)
+[decision]   ANSWER: ## Treatment of Intermediate Reasoning: ReAct vs. Chain-of-Thought
+```
 
 ## Custom RAG Queries (with vs without corpus)
 
