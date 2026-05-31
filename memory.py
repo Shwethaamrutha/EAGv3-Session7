@@ -226,10 +226,13 @@ class MemoryService:
         scored_results.sort(key=lambda x: x[0], reverse=True)
         return [item for _, item in scored_results]
 
+    _last_read_source: str = ""
+
     def read(self, query: str, history: list[dict], kinds: list[str] | None = None, top_k: int = 5) -> list[MemoryItem]:
         # Vector-first path — pure cosine similarity ranking
         vector_results = self._vector_search(query, top_k * 2, kinds=kinds)
         if vector_results:
+            self._last_read_source = "faiss"
             # If indexed fact chunks exist, prioritize them over tool_outcomes
             facts = [r for r in vector_results if r.kind == "fact"]
             others = [r for r in vector_results if r.kind != "fact"]
@@ -238,6 +241,7 @@ class MemoryService:
             return vector_results[:top_k]
 
         # Keyword fallback
+        self._last_read_source = "keyword"
         self._load()
         query_tokens = self._tokenize(query)
         for event in history[-5:]:

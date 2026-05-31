@@ -1,0 +1,45 @@
+QUERY: Compare how the ReAct paper and the Chain-of-Thought paper differ in their treatment of intermediate reasoning.
+
+[memory] memory.remember() → skipped (action query, not a personal fact)
+[memory] Iter 1: memory.read() → 5 hits (FAISS)
+[perception] Goals:
+  → Compare the treatment of intermediate reasoning in the ReAct paper vs the Chain-of-Thought paper using the indexed chunks from both documents.
+[decision] TOOL: search_knowledge({"query": "intermediate reasoning treatment steps chain of thought ReAct", "k": 8})
+[action] search_knowledge → [artifact art:124662097a47aaee, 20758 bytes] preview: [sandbox:papers/react.md chunk 0/2] # ReAct: S
+[memory] Iter 2: memory.read() → 5 hits (FAISS)
+[perception] Goals:
+  → Compare the treatment of intermediate reasoning in the ReAct paper vs the Chain-of-Thought paper using the indexed chunks from both documents.
+[retrieval] 8 chunks from ['sandbox:papers/attention.md', 'sandbox:papers/react.md', 'sandbox:papers/cot.md', 'sandbox:papers/dpo.md']
+[decision] ANSWER: ## Treatment of Intermediate Reasoning: ReAct vs. Chain-of-Thought
+
+### Chain-of...
+
+[ANSWER]
+## Treatment of Intermediate Reasoning: ReAct vs. Chain-of-Thought
+
+### Chain-of-Thought
+
+- Intermediate reasoning is **purely internal and linear**: the model generates a sequential chain of steps entirely within its own computation before producing a final answer.
+- Each step follows logically from the previous one in a single, unbroken chain — no external input interrupts the process.
+- The reasoning chain is generated **all at once**, with no mechanism to course-correct mid-chain based on real-world feedback.
+- A core challenge: **error attribution is difficult**. When the final answer is wrong, the training signal must propagate back through every intermediate step, and without explicit supervision at each step, early errors compound silently through the chain.
+- Correctness of intermediate steps is unverifiable during generation; the model can produce "plausible-sounding but incorrect" steps.
+
+### ReAct
+
+- Intermediate reasoning is **interleaved with actions and external observations**: the model alternates between generating a reasoning trace, taking an action, and receiving an observation from the environment.
+- Reasoning steps are **grounded in actual outcomes** rather than assumptions — the model can compare expected observations with actual ones and revise its plan accordingly.
+- This creates a **built-in error-correction mechanism**: when an observation does not match expectations, the model can adjust its reasoning and choose a different path mid-task.
+- The reasoning trace serves multiple roles simultaneously — planning, reflection, and integration of new external information — rather than being a single linear deduction chain.
+- Failures in ReAct are described as **more recoverable** than in pure reasoning approaches, because subsequent observations can surface and correct earlier mistakes.
+
+### Key Contrast
+
+| Dimension | Chain-of-Thought | ReAct |
+|---|---|---|
+| Reasoning structure | Linear, internal, complete before answer | Interleaved with actions and observations |
+| Grounding | Hypothetical / assumption-based | Grounded in real environment feedback |
+| Error correction | Post-hoc only | Mid-process via observations |
+| Information source | Model's internal knowledge alone | Internal knowledge + external tool outputs |
+
+The fundamental difference is that Chain-of-Thought treats intermediate reasoning as a **closed, self-contained computation**, while ReAct treats it as an **open, iterative dialogue between the model and its environment**.

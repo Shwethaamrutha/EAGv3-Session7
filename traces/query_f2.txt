@@ -1,0 +1,44 @@
+QUERY: Across the papers I have indexed, what do they say about chain-of-thought reasoning?
+
+[memory] memory.remember() → stored [scratchpad] User querying indexed papers about chain-of-thought reasonin
+[memory] Iter 1: memory.read() → 5 hits (FAISS)
+[perception] Goals:
+  → Synthesize what the indexed papers say about chain-of-thought reasoning using available memory hits
+[decision] TOOL: search_knowledge({"query": "chain-of-thought reasoning large language models", "k": 8})
+[action] search_knowledge → [artifact art:07a23ff0567470b7, 21890 bytes] preview: [sandbox:papers/cot.md chunk 0/2] # Chain-of-T
+[memory] Iter 2: memory.read() → 5 hits (FAISS)
+[perception] Goals:
+  → Synthesize what the indexed papers say about chain-of-thought reasoning using available memory hits
+[retrieval] 8 chunks from ['sandbox:papers/lora.md', 'sandbox:papers/react.md', 'sandbox:papers/cot.md', 'sandbox:papers/dpo.md']
+[decision] ANSWER: ## Chain-of-Thought Reasoning: Synthesis from Indexed Papers
+
+### Core Concept
+C...
+
+[ANSWER]
+## Chain-of-Thought Reasoning: Synthesis from Indexed Papers
+
+### Core Concept
+Chain-of-thought (CoT) prompting provides language models with few-shot exemplars that demonstrate step-by-step reasoning, enabling the model to decompose complex problems into intermediate steps before producing a final answer. This mirrors human problem-solving by allocating more computation to problems requiring more reasoning steps.
+
+### Emergent Ability and Scale
+CoT reasoning is an **emergent property of model scale**. Small models produce fluent but illogical reasoning chains, actually underperforming standard prompting. The capability only manifests reliably above approximately **100 billion parameters**. At scale, CoT achieves state-of-the-art results — PaLM 540B with CoT surpasses fine-tuned GPT-3 with a verifier on the GSM8K math benchmark.
+
+### Training Challenges
+A fundamental difficulty is **error attribution across reasoning steps**. Without supervision at each intermediate step, gradient signals must propagate back through the entire chain. Early errors compound through subsequent steps, making it hard to identify which step caused the final incorrect answer. The model must self-correct using only the implicit signal of final-answer correctness.
+
+### Limitations
+- CoT does not guarantee correct reasoning; models can produce plausible-sounding but incorrect intermediate steps
+- Verifying individual reasoning step correctness remains an open problem
+
+### Contrast with ReAct
+The ReAct paper directly contrasts CoT with its interleaved approach:
+
+| Dimension | Chain-of-Thought | ReAct |
+|---|---|---|
+| Reasoning mode | Linear, fully internal | Interleaved with external actions |
+| Grounding | Assumptions only | Actual environment observations |
+| Error recovery | Difficult — no external feedback | More recoverable via observation mismatch |
+| Benchmarks | Strong on arithmetic/symbolic tasks | Outperforms CoT on HotpotQA, FEVER, ALFWorld, WebShop |
+
+ReAct argues that grounding reasoning in real observations — rather than purely internal deliberation — produces more robust problem-solving, particularly for tasks requiring external information retrieval.

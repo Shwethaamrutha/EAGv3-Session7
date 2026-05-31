@@ -246,7 +246,7 @@ body {
     <div class="pipeline" id="pipeline">
       <div class="pipe-node" id="node-embed">
         <div class="node-label">1. Embed Query</div>
-        <div class="node-value">nomic-embed-text → 768-d vector</div>
+        <div class="node-value">Gemini embedding → 768-d vector</div>
       </div>
       <div class="pipe-arrow" id="arrow-1"></div>
       <div class="pipe-node" id="node-faiss">
@@ -403,7 +403,7 @@ async function runQuery() {
 
   // Step 1: Embed
   setNodeState("node-embed", "active");
-  addLog("faiss", "Embedding query via nomic-embed-text (768 dimensions)...");
+  addLog("faiss", "Embedding query via Gemini embedding (768 dimensions)...");
   await sleep(400);
   setNodeState("node-embed", "done");
   setArrowState("arrow-1", "done");
@@ -480,11 +480,7 @@ async function runQuery() {
         } else if (data.type === "token") {
           fullText += data.text;
           document.getElementById("answer-output").innerHTML = marked.parse(fullText);
-          // Switch to answer tab
-          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-          document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-          document.querySelectorAll('.tab')[2].classList.add('active');
-          document.getElementById('tab-answer').style.display = 'block';
+          // Answer ready — user can click Answer tab manually
         } else if (data.type === "done") {
           setNodeState("node-answer", "done");
           addLog("memory", "Done.");
@@ -522,7 +518,7 @@ evtSource.onmessage = (event) => {
     resetPipeline();
     setNodeState("node-embed", "active");
     addLog("memory", `Query: "${data.query}"`);
-    addLog("faiss", "Embedding query via nomic-embed-text...");
+    addLog("faiss", "Embedding query via Gemini embedding...");
     // Auto switch to logs tab
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
@@ -568,11 +564,6 @@ evtSource.onmessage = (event) => {
     const out = document.getElementById("answer-output");
     out.dataset.fulltext = (out.dataset.fulltext || "") + data.text;
     out.innerHTML = marked.parse(out.dataset.fulltext);
-    // Switch to answer tab
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-    document.querySelectorAll('.tab')[2].classList.add('active');
-    document.getElementById('tab-answer').style.display = 'block';
   } else if (data.type === "done") {
     setNodeState("node-answer", "done");
     addLog("memory", "Done.");

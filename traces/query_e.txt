@@ -1,0 +1,36 @@
+QUERY: Index the file papers/attention.md and tell me what the three key contributions of the Transformer architecture are according to this paper.
+
+[memory] memory.remember() → stored [tool_outcome] User requested indexing of papers/attention.md and querying 
+[memory] Iter 1: memory.read() → 1 hits
+[perception] Goals:
+  → Index the file papers/attention.md into the semantic memory store
+  → Retrieve and summarize the three key contributions of the Transformer architecture from the indexed content
+[decision] TOOL: index_document({"path": "papers/attention.md"})
+[action] index_document → Indexed 3 chunks from sandbox:papers/attention.md
+[memory] Iter 2: memory.read() → 3 hits (FAISS)
+[perception] Goals:
+  ✓ Index the file papers/attention.md into the semantic memory store
+  → Retrieve and summarize the three key contributions of the Transformer architecture from the indexed content
+[decision] TOOL: search_knowledge({"query": "key contributions Transformer architecture", "k": 8})
+[action] search_knowledge → [sandbox:papers/attention.md chunk 2/3]
+use of the order of the sequence, we must inject some inform
+[memory] Iter 3: memory.read() → 3 hits (FAISS)
+[perception] Goals:
+  ✓ Index the file papers/attention.md into the semantic memory store
+  → Retrieve and summarize the three key contributions of the Transformer architecture from the indexed content
+[retrieval] 3 chunks from ['sandbox:papers/attention.md']
+[decision] ANSWER: ## Three Key Contributions of the Transformer Architecture
+
+**1. Self-Attention ...
+
+[ANSWER]
+## Three Key Contributions of the Transformer Architecture
+
+**1. Self-Attention Mechanism**
+The Transformer computes representations of a sequence by relating different positions within a single sequence. This enables the model to capture long-range dependencies without any recurrence, replacing the sequential hidden-state computation of RNNs.
+
+**2. Parallel Computation**
+Unlike RNNs, which process tokens one at a time, the Transformer processes all positions simultaneously. This dramatically reduces training time and enables efficient utilization of modern GPU hardware — the model can reach state-of-the-art translation quality after as little as twelve hours of training on eight P100 GPUs.
+
+**3. Positional Encoding**
+Since the architecture contains no recurrence or convolution, sequence order is injected via sinusoidal positional encodings added to the input embeddings. Sine and cosine functions of different frequencies are used, allowing the model to represent relative positions as linear functions of one another without any recurrent structure.

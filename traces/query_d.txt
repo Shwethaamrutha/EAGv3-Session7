@@ -1,0 +1,29 @@
+QUERY: Search for Python asyncio best practices, read the top 3 results, and give me a short numbered list of the advice they agree on.
+
+[memory] memory.remember() → skipped (action query, not a personal fact)
+[memory] Iter 1: memory.read() → 0 hits
+[perception] Goals:
+  → Search for Python asyncio best practices and fetch the top 3 results
+  → Synthesize common advice agreed upon across the top 3 results into a short numbered list
+[decision] TOOL: web_search({"query": "Python asyncio best practices", "max_results": 3})
+[action] web_search → [artifact art:01b542228c998bfc, 8820 bytes] preview: Title: Asyncio best practices - Async-SIG - Dis
+[memory] Iter 2: memory.read() → 5 hits
+[perception] Goals:
+  ✓ Search for Python asyncio best practices and fetch the top 3 results
+  → Synthesize common advice agreed upon across the top 3 results into a short numbered list
+[decision] ANSWER: **Python asyncio Best Practices (Common Advice Across Sources)**
+
+1. **Always us...
+
+[ANSWER]
+**Python asyncio Best Practices (Common Advice Across Sources)**
+
+1. **Always use `asyncio.run()` as your entry point** - Properly starts and tears down the event loop; simply defining `async` functions and calling them without `asyncio.run()` does nothing useful.
+
+2. **Always await coroutines** - Forgetting to `await` a coroutine means it is created but never executed; every coroutine call must be awaited or scheduled explicitly.
+
+3. **Avoid blocking the event loop** - Do not use blocking calls (e.g., `time.sleep`, long-running loops) inside async functions, as they halt the entire event loop and eliminate concurrency benefits; use `asyncio.sleep` and schedule work as tasks instead.
+
+4. **Use tasks to run coroutines concurrently** - Schedule independent coroutines as tasks (via `asyncio.create_task`) rather than awaiting them sequentially, which would behave synchronously.
+
+5. **Handle cancellation and resource cleanup** - Catch `CancelledError` in long-running tasks and use async context managers (`async with`) to ensure proper resource management.

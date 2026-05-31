@@ -378,6 +378,10 @@ async def agent_query(req: QueryRequest):
             remember_evt = {'type': 'step', 'step': 'memory', 'detail': f'memory.remember() → stored [{mem_item.kind}] {mem_item.descriptor[:60]}'}
             broadcast_event(remember_evt)
             yield f"data: {json.dumps(remember_evt)}\n\n"
+        else:
+            remember_evt = {'type': 'step', 'step': 'memory', 'detail': f'memory.remember() → skipped (action query, not a personal fact)'}
+            broadcast_event(remember_evt)
+            yield f"data: {json.dumps(remember_evt)}\n\n"
 
         server_params = StdioServerParameters(command="python", args=["mcp_server.py"], env={**__import__("os").environ, "MCP_LOG_LEVEL": "error"})
         async with stdio_client(server_params) as (read, write):
@@ -389,7 +393,8 @@ async def agent_query(req: QueryRequest):
                 for it in range(1, settings.max_iterations + 1):
                     # Memory read
                     hits = memory.read(req.query, history)
-                    step_evt = {'type': 'step', 'step': 'memory.read', 'detail': f'Iter {it}: {len(hits)} hits from FAISS'}
+                    source_label = " (FAISS)" if memory._last_read_source == "faiss" else ""
+                    step_evt = {'type': 'step', 'step': 'memory', 'detail': f'Iter {it}: memory.read() → {len(hits)} hits{source_label}'}
                     broadcast_event(step_evt)
                     yield f"data: {json.dumps(step_evt)}\n\n"
 

@@ -1,0 +1,36 @@
+QUERY: Across these papers, how do they handle the credit assignment problem?
+
+[memory] memory.remember() → skipped (action query, not a personal fact)
+[memory] Iter 1: memory.read() → 5 hits (FAISS)
+[perception] Goals:
+  → Retrieve and synthesize how the papers in the sandbox handle the credit assignment problem, drawing on all indexed chunks across the available papers.
+[decision] TOOL: search_knowledge({"query": "credit assignment problem", "k": 8})
+[action] search_knowledge → [artifact art:88d9a6b18d91d744, 21689 bytes] preview: [sandbox:papers/cot.md chunk 1/2] to identify 
+[memory] Iter 2: memory.read() → 5 hits (FAISS)
+[perception] Goals:
+  → Retrieve and synthesize how the papers in the sandbox handle the credit assignment problem, drawing on all indexed chunks across the available papers.
+[retrieval] 8 chunks from ['sandbox:papers/react.md', 'sandbox:papers/cot.md', 'sandbox:papers/dpo.md']
+[decision] ANSWER: ## Credit Assignment Across the Indexed Papers
+
+### Chain-of-Thought (CoT)
+
+CoT ...
+
+[ANSWER]
+## Credit Assignment Across the Indexed Papers
+
+### Chain-of-Thought (CoT)
+
+CoT presents credit assignment as a core training difficulty. When a model produces an incorrect final answer, the gradient signal must propagate back through every intermediate reasoning step to locate the error. Early mistakes compound through later steps, making it hard to isolate which specific step caused the failure. Because there is no explicit supervision at intermediate steps, the model receives only the implicit signal from final-answer correctness — forcing it to self-correct without step-level feedback. This is identified as "one of the fundamental challenges in training models for multi-step reasoning."
+
+### ReAct
+
+ReAct partially alleviates the credit assignment problem by interleaving reasoning steps with external actions and observations. Each action produces an observable outcome, giving the model intermediate, grounded feedback at every step rather than only at the end. When an observation contradicts the model's expectation, the error is immediately surfaced and the model can revise its plan. This makes failures more recoverable compared to purely internal reasoning chains.
+
+### DPO / RLHF
+
+DPO addresses credit assignment at the response level rather than the step level. Standard RLHF assigns a single scalar reward to an entire generated response, then uses PPO to propagate that signal back — an inherently coarse attribution. DPO sidesteps explicit RL altogether by reparameterizing the reward model so that the optimal policy can be extracted in closed form from pairwise preference data, replacing the unstable multi-stage RLHF pipeline with a single classification loss. This avoids the compounding variance of token-level credit assignment in PPO but still operates on whole-response comparisons, not individual reasoning steps.
+
+### Synthesis
+
+All three papers confront credit assignment but at different granularities. CoT exposes the problem most directly (step-level, no solution offered). ReAct mitigates it through environmental feedback at each action. DPO resolves the RL-level instability with a closed-form policy update, but defers the within-response step attribution problem entirely.

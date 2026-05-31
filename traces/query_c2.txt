@@ -1,0 +1,11 @@
+QUERY: When is moms birthday?
+
+[memory] memory.remember() → skipped (action query, not a personal fact)
+[memory] Iter 1: memory.read() → 2 hits
+[perception] Goals:
+  ✓ Report mom's birthday date to the user
+[decision] ANSWER: Your mom's birthday is **May 15, 2026**....
+[done] All 1 goals satisfied
+
+[ANSWER]
+Your mom's birthday is **May 15, 2026**.
