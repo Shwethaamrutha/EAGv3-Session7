@@ -23,54 +23,54 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              USER QUERY                                      │
+│                              USER QUERY                                     │
 └────────────────────────────────────┬────────────────────────────────────────┘
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ░░ MEMORY.REMEMBER ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
+│  ░░ MEMORY.REMEMBER ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    │
 │  Classify query → store personal facts (birthday, preferences)              │
 │  Scratchpad items skipped for action queries                                │
 └────────────────────────────────────┬────────────────────────────────────────┘
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ▓▓ MEMORY.READ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │
+│  ▓▓ MEMORY.READ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓       │
 │                                                                             │
 │  ┌─────────────────────┐    ┌──────────────────────────────────────────┐    │
-│  │  Embed Query         │    │  FAISS IndexFlatIP                       │    │
-│  │  Gemini 768-d        │───▶│  Cosine similarity search                │    │
-│  │                      │    │  Top-5 most similar chunks               │    │
+│  │  Embed Query        │    │  FAISS IndexFlatIP                       │    │
+│  │  Gemini 768-d       │───▶│  Cosine similarity search                │    │
+│  │                     │    │  Top-5 most similar chunks               │    │
 │  └─────────────────────┘    └──────────────┬───────────────────────────┘    │
-│                                             │                               │
-│                              [if no FAISS hits: keyword fallback]            │
+│                                            │                                │
+│                              [if no FAISS hits: keyword fallback]           │
 └────────────────────────────────────┬────────────────────────────────────────┘
                                      │ hits (chunk descriptors)
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ◆◆ PERCEPTION ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆  │
+│  ◆◆ PERCEPTION ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆          │
 │  Sees: query + FAISS hits + history                                         │
-│  Outputs: ordered goals (✓ done / → open)                                  │
+│  Outputs: ordered goals (✓ done / → open)                                   │
 │  Rule: TOOL-BLIND — never sees or names MCP tools                           │
 └────────────────────────────────────┬────────────────────────────────────────┘
                                      │ goals
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ★★ DECISION ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★  │
-│  Sees: goal + hits + attached artifacts + history + tool catalog             │
+│  ★★ DECISION ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★      │
+│  Sees: goal + hits + attached artifacts + history + tool catalog            │
 │  Outputs: ANSWER (from context) OR one TOOL CALL                            │
 │                                                                             │
 │  Tools: web_search | fetch_url | index_document | search_knowledge          │
-│         read_file | create_file | list_dir | get_time | ...                  │
+│         read_file | create_file | list_dir | get_time | ...                 │
 └───────────────┬─────────────────────────────────┬───────────────────────────┘
                 │ (answer)                         │ (tool call)
                 ▼                                  ▼
 ┌───────────────────────────┐    ┌────────────────────────────────────────────┐
-│         ANSWER             │    │  ◈◈ ACTION ◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈  │
-│  Streamed to user          │    │  Execute MCP tool via stdio subprocess     │
-│                            │    │  Result → memory.record_outcome()          │
+│         ANSWER            │    │  ◈◈ ACTION ◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈     │
+│  Streamed to user         │    │  Execute MCP tool via stdio subprocess     │
+│                           │    │  Result → memory.record_outcome()          │
 └───────────────────────────┘    │  Large results → artifact store            │
-                                  └──────────────────────┬───────────────────┘
+                                 └────────-──────────────┬────────────-───────┘
                                                          │
                                                          ▼
                                               ┌──────────────────────┐
@@ -130,31 +130,44 @@
 | G | "Credit assignment" semantic recall | 2 |
 | H | ReAct vs CoT cross-document synthesis | 2 |
 
-<details><summary><b>Click to expand: Base Query Screenshots (A-H)</b></summary>
+<details><summary><b> Click to expand: Base Query Screenshots (A-H) </b></summary>
+
+---
 
 **Query A — Shannon Wikipedia**
 ![A-1](screenshots/A-1.png)
 ![A-2](screenshots/A-2.png)
+
+---
 
 **Query B — Tokyo Activities + Weather**
 ![B-1](screenshots/B-1.png)
 ![B-2](screenshots/B-2.png)
 ![B-3](screenshots/B-3.png)
 
+---
+
 **Query C — Memory Persistence**
 ![C-1](screenshots/C-1.png)
 ![C-2](screenshots/C-2.png)
 ![C-3](screenshots/C-3.png)
 
+---
+
 **Query D — Asyncio Synthesis**
 ![D-1](screenshots/D-1.png)
 ![D-2](screenshots/D-2.png)
+
+
+---
 
 **Query E — Index + Extract**
 ![E-1](screenshots/E-1.png)
 ![E-2](screenshots/E-2.png)
 ![E-3](screenshots/E-3.png)
 ![E-4](screenshots/E-4.png)
+
+---
 
 **Query F — Index All + Cross-Run Persistence**
 ![F-1](screenshots/F-1.png)
@@ -165,15 +178,21 @@
 ![F-6](screenshots/F-6.png)
 ![F-7](screenshots/F-7.png)
 
+---
+
 **Query G — Semantic Recall ("credit assignment" not in chunks)**
 ![G-1](screenshots/G-1.png)
 ![G-2](screenshots/G-2.png)
 ![G-3](screenshots/G-3.png)
 
+---
+
 **Query H — Cross-Document Synthesis**
 ![H-1](screenshots/H-1.png)
 ![H-2](screenshots/H-2.png)
 ![H-3](screenshots/H-3.png)
+
+---
 
 </details>
 
