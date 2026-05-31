@@ -216,41 +216,59 @@
 
 **No-corpus test:** "Tell me more about the case study on multilingual news article classification" — without the PEFT paper indexed, the agent responds "This information is not in the indexed knowledge base." With the paper indexed, it retrieves the relevant chunks and answers correctly.
 
+---
+
 <details><summary><b>Click to expand: Custom RAG Query Screenshots (1-6 + No-Corpus)</b></summary>
+
+---
 
 **Custom Query 1 — LoRA Rank (Direct)**
 ![Custom-A1](screenshots/Custom-A1.png)
 ![Custom-A2](screenshots/Custom-A2.png)
 ![Custom-A3](screenshots/Custom-A3.png)
 
+---
+
 **Custom Query 2 — Intruder Dimensions (Direct)**
 ![Custom-B1](screenshots/Custom-B1.png)
 ![Custom-B2](screenshots/Custom-B2.png)
 ![Custom-B3](screenshots/Custom-B3.png)
+
+---
 
 **Custom Query 3 — QDyLoRA Dynamic Rank (Direct)**
 ![Custom-C1](screenshots/Custom-C1.png)
 ![Custom-C2](screenshots/Custom-C2.png)
 ![Custom-C3](screenshots/Custom-C3.png)
 
+---
+
 **Custom Query 4 — Theoretical/PEFT (Direct)**
 ![Custom-D1](screenshots/Custom-D1.png)
 ![Custom-D2](screenshots/Custom-D2.png)
+
+---
 
 **Custom Query 5 — Stability-Plasticity Dilemma (Semantic Recall)**
 ![Custom-E1-Sem](screenshots/Custom-E1-Sem.png)
 ![Custom-E2-Sem](screenshots/Custom-E2-Sem.png)
 ![Custom-E3-Sem](screenshots/Custom-E3-Sem.png)
 
+---
+
 **Custom Query 6 — Compute Savings (Semantic Recall)**
 ![Custom-F1-Sem](screenshots/Custom-F1-Sem.png)
 ![Custom-F2-Sem](screenshots/Custom-F2-Sem.png)
 ![Custom-F3-Sem](screenshots/Custom-F3-Sem.png)
 
+---
+
 **No-Corpus Comparison**
 ![Custom-G1-Nocorpus](screenshots/Custom-G1-Nocorpus.png)
 ![Custom-G2-afterIndex](screenshots/Custom-G2-afterIndex.png)
 ![Custom-G3-afterIndex](screenshots/Custom-G3-afterIndex.png)
+
+---
 
 </details>
 
