@@ -249,6 +249,16 @@ async def index_document(path: str, chunk_size: int = 400, overlap: int = 80) ->
         text = target.read_text()
         source_label = f"sandbox:{clean_path}"
 
+    # Strip noisy sections before chunking
+    import re as _re
+    # Remove everything after References/Acknowledgements
+    for pattern in [r'(?i)## References.*', r'(?i)## Acknowledgements.*']:
+        text = _re.split(pattern, text)[0]
+    # Remove license/attribution boilerplate at the start
+    text = _re.sub(r'(?i)Provided proper attribution.*?(?=\n#|\n\n)', '', text)
+    # Remove citation list noise
+    text = _re.sub(r'\* \[\d+\].*?\n', '', text)
+
     # Sliding window chunking
     words = text.split()
     chunks = []
@@ -282,10 +292,11 @@ async def index_document(path: str, chunk_size: int = 400, overlap: int = 80) ->
 
 
 @mcp.tool()
-async def search_knowledge(query: str, k: int = 5) -> str:
-    """Vector search over previously indexed fact chunks. Use this rather
-    than re-fetching or re-reading source files when Memory already
-    contains indexed chunks for the topic."""
+async def search_knowledge(query: str, k: int = 3) -> str:
+    """Vector search over previously indexed fact chunks. Returns the top k
+    most relevant chunks (default 3, max 5). Use this rather than re-fetching
+    or re-reading source files when Memory already contains indexed chunks."""
+    k = min(k, 5)
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
     from memory import memory
@@ -296,9 +307,11 @@ async def search_knowledge(query: str, k: int = 5) -> str:
 
     results = []
     for h in hits:
-        chunk_preview = h.value.get("chunk", h.descriptor)[:500]
+        chunk_text = h.value.get("chunk", h.descriptor)
         source = h.value.get("source", h.source)
-        results.append(f"[{source}] {chunk_preview}")
+        chunk_idx = h.value.get("chunk_index", "?")
+        total = h.value.get("total_chunks", "?")
+        results.append(f"[{source} chunk {chunk_idx}/{total}]\n{chunk_text}")
     return "\n\n---\n\n".join(results)
 
 

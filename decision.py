@@ -24,10 +24,14 @@ def _decision_system():
 Today is {weekday}, {today.isoformat()}.
 
 You have two options:
-1. ANSWER: If you have enough information to satisfy the goal, respond CONCISELY.
-   - MAX 3 sentences. No tables, no elaborate formatting.
-   - For recommendations: "[Context]. From the options found (A, B, C), [specific name] is most appropriate because [one reason]."
-   - Pick ONE specific named option — not a category like "outdoor activities".
+1. ANSWER: If you have enough information to satisfy the goal, respond clearly.
+   - Use markdown formatting (headers, bullet points, bold) for readability.
+   - Be comprehensive but focused — cover the key points.
+   - NEVER use emojis in your response.
+   - For recommendations: pick ONE specific named option with a clear reason.
+   - ONLY use information explicitly present in MEMORY HITS, ATTACHED ARTIFACTS, and RECENT HISTORY.
+     NEVER add facts, claims, or details from your own training knowledge.
+     If a paper or source is not quoted in the provided context, do NOT mention it.
    - Reference items from MEMORY HITS or RECENT HISTORY — never invent new options.
 
 2. TOOL CALL: If you need external information or must perform an action, call exactly ONE tool.
@@ -38,6 +42,7 @@ You have two options:
    - Use index_document when content must become FAISS-searchable for later queries.
      After fetching a URL, save it to the sandbox then index it for semantic search.
    - Use search_knowledge when Memory already contains indexed chunks for the topic.
+     PREFER search_knowledge over web_search/fetch_url when MEMORY HITS show indexed chunks.
    - Use read_file for one-shot inspection of a file's contents (not indexing).
    - For research tasks: fetch → create_file (save to sandbox) → index_document → repeat.
      Once all sources are indexed, use search_knowledge for synthesis.
@@ -51,9 +56,10 @@ CRITICAL PRIORITY:
 
 Rules:
 - Do exactly one thing: answer OR call one tool. Never both.
-- NEVER narrate your reasoning. Start DIRECTLY with the answer content.
+- NEVER narrate your reasoning or thought process. Start DIRECTLY with the answer content.
+- NEVER mention chunks, memory hits, artifacts, sources, or tool internals in your answer.
+  The user doesn't know about these. Just answer naturally.
 - NEVER mention failed fetches, missing sources, or data limitations in your answer.
-  Just answer using what you have. The user doesn't need excuses.
 - Be efficient. One tool call should accomplish the goal if possible.
 - Always give a concrete answer. Never ask for clarification.
 - Keep answers under 5 sentences. Be direct and factual.
@@ -85,12 +91,13 @@ def _format_hits(hits: list[MemoryItem]) -> str:
     for h in hits:
         lines.append(f"  ({h.kind}) {h.descriptor}")
         if h.kind == "fact" and h.value.get("chunk"):
-            lines.append(f"    chunk: {h.value['chunk'][:600]}")
+            # Show only descriptor — Decision must call search_knowledge for full content
+            pass
         elif h.value:
             val_str = json.dumps(h.value, default=str)[:300]
             lines.append(f"    value: {val_str}")
         if h.kind == "tool_outcome" and h.value.get("result_preview"):
-            preview = h.value["result_preview"][:2000]
+            preview = h.value["result_preview"]
             lines.append(f"    preview: {preview}")
     return "\n".join(lines)
 
@@ -125,7 +132,8 @@ def _format_history(history: list[dict]) -> str:
             if event.get("tool") == "fetch_url" and len(result) < 200:
                 tag = " [FAILED - find alternative]"
                 failed_urls.add(event.get("arguments", {}).get("url", ""))
-            lines.append(f"  TOOL {event['tool']}({json.dumps(event.get('arguments', {}))[:100]}) → {result[:100]}{tag}")
+            args_str = json.dumps(event.get("arguments", {}))
+            lines.append(f"  TOOL {event['tool']}({args_str}) → {result}{tag}")
         elif event.get("kind") == "answer":
             lines.append(f"  ANSWER: {event.get('text', '')[:100]}")
 

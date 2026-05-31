@@ -204,7 +204,9 @@ class MemoryService:
         # Reload items from disk for cross-process consistency
         self._load()
         id_to_item = {item.id: item for item in self._items}
-        results = []
+        query_tokens = self._tokenize(query)
+
+        scored_results = []
         for i in range(actual_k):
             pos = int(positions[0][i])
             score = float(scores[0][i])
@@ -214,23 +216,26 @@ class MemoryService:
                 item_id = ids[pos]
                 item = id_to_item.get(item_id)
                 if item and (kinds is None or item.kind in kinds):
-                    results.append(item)
-        return results
+                    # Hybrid boost: add keyword overlap signal to vector score
+                    chunk_text = item.value.get("chunk", item.descriptor)
+                    chunk_tokens = self._tokenize(chunk_text)
+                    overlap = len(query_tokens & chunk_tokens)
+                    boosted_score = score + (overlap * 0.02)
+                    scored_results.append((boosted_score, item))
 
-    def read(self, query: str, history: list[dict], kinds: list[str] | None = None, top_k: int = 8) -> list[MemoryItem]:
-        # Vector-first path with relevance gate
-        vector_results = self._vector_search(query, top_k, kinds=kinds)
+        scored_results.sort(key=lambda x: x[0], reverse=True)
+        return [item for _, item in scored_results]
+
+    def read(self, query: str, history: list[dict], kinds: list[str] | None = None, top_k: int = 10) -> list[MemoryItem]:
+        # Vector-first path — pure cosine similarity ranking
+        vector_results = self._vector_search(query, top_k * 2, kinds=kinds)
         if vector_results:
-            # Check if top result is actually relevant by verifying keyword overlap
-            query_tokens = self._tokenize(query)
-            top_item = vector_results[0]
-            item_tokens = set(top_item.keywords) | self._tokenize(top_item.descriptor)
-            overlap = len(query_tokens & item_tokens)
-            # If zero keyword overlap AND this is a fact chunk, the vector match is spurious
-            if overlap == 0 and top_item.kind == "fact" and top_item.value.get("chunk"):
-                pass  # Skip vector results, fall through to keyword search
-            else:
-                return vector_results[:top_k]
+            # If indexed fact chunks exist, prioritize them over tool_outcomes
+            facts = [r for r in vector_results if r.kind == "fact"]
+            others = [r for r in vector_results if r.kind != "fact"]
+            if facts:
+                return (facts + others)[:top_k]
+            return vector_results[:top_k]
 
         # Keyword fallback
         self._load()
@@ -327,8 +332,7 @@ class MemoryService:
                 return None
             self._items.append(item)
             self._save()
-            if embedding:
-                self._append_to_faiss(item.id, embedding)
+            # Only add_fact writes to FAISS — remember() items stay in keyword search only
             log.info("memory_stored", kind=item.kind, descriptor=item.descriptor[:60])
             return item
         return None
@@ -360,7 +364,7 @@ class MemoryService:
             value={
                 "tool": tool_call.name,
                 "arguments": tool_call.arguments,
-                "result_preview": result_text[:4000],
+                "result_preview": result_text[:8000],
             },
             embedding=embedding,
             artifact_id=artifact_id,
@@ -374,8 +378,7 @@ class MemoryService:
             return item
         self._items.append(item)
         self._save()
-        if embedding:
-            self._append_to_faiss(item.id, embedding)
+        # Don't add tool_outcomes to FAISS — keeps vector index clean for fact chunks only
         return item
 
     def add_fact(
@@ -389,7 +392,9 @@ class MemoryService:
         goal_id: str | None = None,
     ) -> MemoryItem:
         """Write a fact item directly (used by index_document for chunks)."""
-        embedding = _try_embed(descriptor, task_type="retrieval_document")
+        # Embed the full chunk text (not just the descriptor) for better semantic retrieval
+        embed_text = value.get("chunk", descriptor)
+        embedding = _try_embed(embed_text, task_type="retrieval_document")
         item = MemoryItem(
             id=_new_id("mem"),
             kind="fact",

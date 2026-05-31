@@ -35,10 +35,11 @@ Decomposition rules:
 
 Research queries:
 - When the user asks to "research", "explore", "survey", or "deep dive" on a topic,
-  decompose into: (1) search from multiple angles, (2) fetch the most relevant sources,
+  AND memory hits do NOT contain indexed chunks, decompose into:
+  (1) search from multiple angles, (2) fetch the most relevant sources,
   (3) index all fetched content for semantic retrieval, (4) synthesize findings.
-- Search from at least 3 different angles/sub-topics to ensure breadth.
-- Aim to gather 8-15 sources for a thorough research query.
+- If MEMORY HITS already contain indexed chunks relevant to the query,
+  do NOT search the web. Create a single synthesis goal instead.
 
 Completion rules:
 - A goal is done when the history contains a tool result or answer that satisfies it.
@@ -46,9 +47,10 @@ Completion rules:
 - Once done, a goal remains done permanently.
 - A web_search result that returns full article content (marked with char counts) counts as BOTH
   searching AND reading. No separate fetch is needed when content is already available.
-- When MEMORY HITS already contain indexed chunks with the information needed to answer,
-  create a SINGLE goal to synthesize the answer. Do NOT create goals to "retrieve" or "read"
-  content that is already present in the memory hits — just use it directly.
+- When MEMORY HITS already contain indexed chunks (descriptors showing "chunk N/M" or
+  containing actual document content), the content is ALREADY indexed and searchable.
+  Create a SINGLE goal to synthesize the answer directly. Do NOT create goals to
+  "index", "retrieve", or "read" content that already appears in memory hits.
 
 Artifact attachment:
 - Set artifact_index to a valid MEMORY HITS index when the next goal needs raw content

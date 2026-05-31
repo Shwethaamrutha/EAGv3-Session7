@@ -281,6 +281,40 @@ async def query_knowledge(req: QueryRequest):
     return StreamingResponse(generate(), media_type="text/event-stream")
 
 
+@app.post("/remove")
+async def remove_source(req: QueryRequest):
+    """Remove all chunks from a specific source."""
+    import faiss
+    from llm_gateway.gateway import EMBED_DIMENSION
+
+    source_query = req.query.lower()
+    memory._load()
+
+    # Find items to keep
+    kept = [i for i in memory._items if source_query not in i.value.get("source", "").lower() and source_query not in i.value.get("title", "").lower()]
+    removed_count = len(memory._items) - len(kept)
+
+    if removed_count == 0:
+        return {"status": "not_found", "message": f"No chunks found matching '{req.query}'"}
+
+    # Rebuild memory and FAISS with only kept items
+    memory._items = kept
+    memory._save()
+
+    # Rebuild FAISS index from remaining facts with embeddings
+    index = faiss.IndexFlatIP(EMBED_DIMENSION)
+    ids = []
+    for item in kept:
+        if item.embedding and item.kind == "fact":
+            vec = np.array([item.embedding], dtype="float32")
+            faiss.normalize_L2(vec)
+            index.add(vec)
+            ids.append(item.id)
+    memory._save_faiss_index(index, ids)
+
+    return {"status": "removed", "removed": removed_count, "remaining": len(kept)}
+
+
 @app.post("/clear")
 async def clear_state():
     """Clear all indexed data and FAISS index."""
@@ -352,12 +386,21 @@ async def agent_query(req: QueryRequest):
                         obs = perception.observe(req.query, hits, history, prior_goals, run_id)
                         prior_goals = obs.goals
 
-                    goals_text = " | ".join(f"{'[done]' if g.done else '[open]'} {g.text[:40]}" for g in obs.goals)
-                    perc_evt = {'type': 'step', 'step': 'perception', 'detail': f'Goals: {goals_text}'}
+                    goals_text = "\n".join(f"  {'✓' if g.done else '→'} {g.text}" for g in obs.goals)
+                    perc_evt = {'type': 'step', 'step': 'perception', 'detail': f'Goals:\n{goals_text}'}
                     broadcast_event(perc_evt)
                     yield f"data: {json.dumps(perc_evt)}\n\n"
 
                     if obs.all_done:
+                        # If no answer yet, ask Decision to produce one
+                        if not any(e.get("kind") == "answer" for e in history):
+                            last_goal = obs.goals[-1]
+                            out = decision.next_step(last_goal, hits, [], history, mcp_tools)
+                            if out.is_answer:
+                                history.append({"iter": it, "kind": "answer", "goal_id": last_goal.id, "text": out.answer})
+                                ans_evt = {'type': 'step', 'step': 'decision', 'detail': f'ANSWER: {out.answer[:80]}...'}
+                                broadcast_event(ans_evt)
+                                yield f"data: {json.dumps(ans_evt)}\n\n"
                         done_evt = {'type': 'step', 'step': 'done', 'detail': f'All {len(obs.goals)} goals satisfied'}
                         broadcast_event(done_evt)
                         yield f"data: {json.dumps(done_evt)}\n\n"
@@ -389,12 +432,55 @@ async def agent_query(req: QueryRequest):
                         continue
 
                     if out.is_answer:
+                        # Emit retrieval showing what was ACTUALLY used for this answer
+                        # This includes attached artifacts (search_knowledge results)
+                        retrieval_log = []
+                        hit_sources_set = set()
+
+                        # First: chunks from attached artifacts (what Decision actually read)
+                        if attached:
+                            for art_id, blob in attached:
+                                art_text = blob.decode("utf-8", errors="replace")
+                                # Parse search_knowledge format: [source chunk N/M]\ncontent\n\n---\n\n
+                                for chunk_block in art_text.split("\n\n---\n\n"):
+                                    import re as _re
+                                    source_match = _re.match(r'\[(.*?)\s+chunk\s+(\d+)/(\d+)\]', chunk_block)
+                                    if source_match:
+                                        source = source_match.group(1)
+                                        idx = source_match.group(2)
+                                        total = source_match.group(3)
+                                        chunk_content = _re.sub(r'^\[.*?\]\n', '', chunk_block)
+                                        hit_sources_set.add(source)
+                                        retrieval_log.append({
+                                            "source": source,
+                                            "kind": "fact",
+                                            "chunk": chunk_content,
+                                            "chunk_index": idx,
+                                            "total_chunks": total,
+                                        })
+
+                        # Fallback: if no attached artifacts, show memory.read fact hits
+                        if not retrieval_log:
+                            fact_hits_for_display = [h for h in hits if h.kind == "fact" and h.value.get("chunk")]
+                            for h in fact_hits_for_display[:6]:
+                                hit_sources_set.add(h.value.get("source", h.source))
+                                retrieval_log.append({
+                                    "source": h.value.get("title", h.value.get("source", h.source)),
+                                    "kind": h.kind,
+                                    "chunk": h.value.get("chunk", h.descriptor),
+                                    "chunk_index": h.value.get("chunk_index", "?"),
+                                    "total_chunks": h.value.get("total_chunks", "?"),
+                                })
+
+                        if retrieval_log:
+                            retrieval_evt = {'type': 'retrieval', 'hits': len(retrieval_log), 'sources': list(hit_sources_set), 'chunks': retrieval_log}
+                            broadcast_event(retrieval_evt)
+                            yield f"data: {json.dumps(retrieval_evt)}\n\n"
+
                         ans_evt = {'type': 'step', 'step': 'decision', 'detail': f'ANSWER: {out.answer[:80]}...'}
                         broadcast_event(ans_evt)
                         yield f"data: {json.dumps(ans_evt)}\n\n"
                         history.append({"iter": it, "kind": "answer", "goal_id": goal.id, "text": out.answer})
-                        # Stream the answer
-                        yield f"data: {json.dumps({'type': 'token', 'text': out.answer})}\n\n"
                         unfinished = sum(1 for g in obs.goals if not g.done)
                         if unfinished <= 1:
                             break
@@ -407,7 +493,7 @@ async def agent_query(req: QueryRequest):
 
                     result_text, art_id = await action.execute(session, out.tool_call)
                     memory.record_outcome(tool_call=out.tool_call, result_text=result_text, artifact_id=art_id, run_id=run_id, goal_id=goal.id)
-                    history.append({"iter": it, "kind": "action", "goal_id": goal.id, "tool": out.tool_call.name, "arguments": out.tool_call.arguments, "result_descriptor": result_text[:300], "artifact_id": art_id})
+                    history.append({"iter": it, "kind": "action", "goal_id": goal.id, "tool": out.tool_call.name, "arguments": out.tool_call.arguments, "result_descriptor": result_text, "artifact_id": art_id})
 
                     action_evt = {'type': 'step', 'step': 'action', 'detail': f'{out.tool_call.name} → {result_text[:100]}'}
                     broadcast_event(action_evt)
@@ -418,7 +504,18 @@ async def agent_query(req: QueryRequest):
         if answers:
             final = answers[-1]
         else:
-            final = "No answer produced."
+            # No explicit answer — summarize what was accomplished
+            actions = [e for e in history if e.get("kind") == "action"]
+            if actions:
+                action_summary = "\n".join(f"- {a.get('tool')}: {a.get('result_descriptor','')[:200]}" for a in actions)
+                summary_messages = [
+                    {"role": "system", "content": "Summarize what was accomplished in a brief confirmation message. Use markdown. No emojis."},
+                    {"role": "user", "content": f"Original request: {req.query}\n\nActions taken:\n{action_summary}"},
+                ]
+                summary_resp = gateway.chat(messages=summary_messages, temperature=0.3)
+                final = summary_resp.text if summary_resp.text else "Tasks completed."
+            else:
+                final = "No answer produced."
         yield f"data: {json.dumps({'type': 'token', 'text': final})}\n\n"
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
         broadcast_event({'type': 'done'})

@@ -72,6 +72,44 @@ async function sendQuery() {
     return;
   }
 
+  if (query === "/new") {
+    input.value = "";
+    try {
+      const r = await fetch("http://localhost:8080/new", { method: "POST" });
+      const data = await r.json();
+      const empty2 = chat.querySelector(".empty-state");
+      if (empty2) empty2.remove();
+      addMessage("bot", `New session started. FAISS index persisted: ${data.persisted_chunks} chunks still available.`);
+    } catch (e) {
+      addMessage("bot", "Error: " + e.message);
+    }
+    return;
+  }
+
+  if (query.startsWith("/remove ")) {
+    const source = query.slice(8).trim();
+    input.value = "";
+    try {
+      const r = await fetch("http://localhost:8080/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: source }),
+      });
+      const data = await r.json();
+      const empty2 = chat.querySelector(".empty-state");
+      if (empty2) empty2.remove();
+      if (data.status === "removed") {
+        addMessage("bot", `Removed ${data.removed} chunks matching "${source}". ${data.remaining} items remaining.`);
+      } else {
+        addMessage("bot", `No chunks found matching "${source}".`);
+      }
+      loadPages();
+    } catch (e) {
+      addMessage("bot", "Error: " + e.message);
+    }
+    return;
+  }
+
   isQuerying = true;
   sendBtn.disabled = true;
   input.value = "";
