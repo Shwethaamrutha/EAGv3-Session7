@@ -107,6 +107,14 @@
 - Tool-selection guidance lives in Decision's SYSTEM + tool docstrings
 - FAISS reloaded from disk on every call (cross-process consistency)
 
+---
+
+## 📋 Outputs & Evidence
+
+> **All screenshots below show actual ÄXON dashboard output with live iteration logs, retrieved FAISS chunks, and synthesized answers.**
+
+---
+
 ## Base Query Traces (A-H)
 
 | Query | Description | Iterations |
@@ -183,8 +191,11 @@
 | 1 | "What rank is sufficient for LoRA adaptation on downstream tasks?" | No |
 | 2 | "What are intruder dimensions and why do they cause forgetting?" | No |
 | 3 | "How does dynamic rank selection work during training?" | No |
-| 4 | "How do these methods handle the stability-plasticity dilemma?" | Yes |
-| 5 | "Which approach gives the best bang for your buck in compute savings?" | Yes |
+| 4 | "Tell me more about the case study on multilingual news article classification" | No |
+| 5 | "How do these methods handle the stability-plasticity dilemma?" | Yes |
+| 6 | "Which approach gives the best bang for your buck in compute savings?" | Yes |
+
+**No-corpus test:** "Tell me more about the case study on multilingual news article classification" — without the PEFT paper indexed, the agent responds "This information is not in the indexed knowledge base." With the paper indexed, it retrieves the relevant chunks and answers correctly.
 
 <details><summary>View all custom query screenshots</summary>
 
