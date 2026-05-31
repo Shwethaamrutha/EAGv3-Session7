@@ -516,7 +516,7 @@ async def agent_query(req: QueryRequest):
                         continue
 
                     # Tool call
-                    tool_evt = {'type': 'step', 'step': 'decision', 'detail': f'TOOL: {out.tool_call.name}({json.dumps(out.tool_call.arguments)[:60]})'}
+                    tool_evt = {'type': 'step', 'step': 'decision', 'detail': f'TOOL: {out.tool_call.name}({json.dumps(out.tool_call.arguments)})'}
                     broadcast_event(tool_evt)
                     yield f"data: {json.dumps(tool_evt)}\n\n"
 
