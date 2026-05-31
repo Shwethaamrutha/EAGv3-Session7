@@ -42,7 +42,10 @@ Research queries:
   do NOT search the web. Create a single synthesis goal instead.
 
 Completion rules:
-- A goal is done when the history contains a tool result or answer that satisfies it.
+- A goal is done when the HISTORY contains a tool result or answer that satisfies it.
+- Goals that require CREATING something (files, reminders, documents) are only done when
+  history shows the creation tool was called successfully. Memory hits alone do NOT satisfy these.
+- Goals that require RETRIEVING or ANSWERING can be satisfied by memory hits or history.
 - Mark goals done based on what information is NOW available, not what is perfect.
 - Once done, a goal remains done permanently.
 - A web_search result that returns full article content (marked with char counts) counts as BOTH

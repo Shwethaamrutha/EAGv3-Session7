@@ -226,7 +226,7 @@ class MemoryService:
         scored_results.sort(key=lambda x: x[0], reverse=True)
         return [item for _, item in scored_results]
 
-    def read(self, query: str, history: list[dict], kinds: list[str] | None = None, top_k: int = 10) -> list[MemoryItem]:
+    def read(self, query: str, history: list[dict], kinds: list[str] | None = None, top_k: int = 5) -> list[MemoryItem]:
         # Vector-first path — pure cosine similarity ranking
         vector_results = self._vector_search(query, top_k * 2, kinds=kinds)
         if vector_results:

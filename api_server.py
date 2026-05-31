@@ -365,7 +365,11 @@ async def agent_query(req: QueryRequest):
         prior_goals = []
 
         memory._load()
-        memory.remember(req.query, source="user_query", run_id=run_id)
+        mem_item = memory.remember(req.query, source="user_query", run_id=run_id)
+        if mem_item:
+            remember_evt = {'type': 'step', 'step': 'memory', 'detail': f'memory.remember() → stored [{mem_item.kind}] {mem_item.descriptor[:60]}'}
+            broadcast_event(remember_evt)
+            yield f"data: {json.dumps(remember_evt)}\n\n"
 
         server_params = StdioServerParameters(command="python", args=["mcp_server.py"], env={**__import__("os").environ, "MCP_LOG_LEVEL": "error"})
         async with stdio_client(server_params) as (read, write):
@@ -401,6 +405,21 @@ async def agent_query(req: QueryRequest):
                                 ans_evt = {'type': 'step', 'step': 'decision', 'detail': f'ANSWER: {out.answer[:80]}...'}
                                 broadcast_event(ans_evt)
                                 yield f"data: {json.dumps(ans_evt)}\n\n"
+                            else:
+                                # Decision didn't answer — generate summary from actions
+                                actions = [e for e in history if e.get("kind") == "action"]
+                                if actions:
+                                    action_summary = "\n".join(f"- {a.get('tool')}: {a.get('result_descriptor','')[:200]}" for a in actions)
+                                    summary_messages = [
+                                        {"role": "system", "content": "Summarize what was accomplished in a brief confirmation. Use markdown. No emojis. No internal details."},
+                                        {"role": "user", "content": f"Request: {req.query}\n\nActions:\n{action_summary}"},
+                                    ]
+                                    summary_resp = gateway.chat(messages=summary_messages, temperature=0.3)
+                                    if summary_resp.text:
+                                        history.append({"iter": it, "kind": "answer", "goal_id": last_goal.id, "text": summary_resp.text})
+                                        ans_evt = {'type': 'step', 'step': 'decision', 'detail': f'ANSWER: {summary_resp.text[:80]}...'}
+                                        broadcast_event(ans_evt)
+                                        yield f"data: {json.dumps(ans_evt)}\n\n"
                         done_evt = {'type': 'step', 'step': 'done', 'detail': f'All {len(obs.goals)} goals satisfied'}
                         broadcast_event(done_evt)
                         yield f"data: {json.dumps(done_evt)}\n\n"
@@ -422,8 +441,10 @@ async def agent_query(req: QueryRequest):
                     elif goal.attach_artifact_id and artifact_store.exists(goal.attach_artifact_id):
                         attached.append((goal.attach_artifact_id, artifact_store.get_bytes(goal.attach_artifact_id)))
 
-                    # Decision
-                    out = decision.next_step(goal, hits, attached, history, mcp_tools)
+                    # Decision — when artifacts are attached, clear memory hits to avoid
+                    # hallucination from descriptors that aren't in the artifact content
+                    decision_hits = [] if attached else hits
+                    out = decision.next_step(goal, decision_hits, attached, history, mcp_tools)
 
                     if out.is_error:
                         err_evt = {'type': 'step', 'step': 'decision', 'detail': f'Transient error, retrying...'}
@@ -521,6 +542,17 @@ async def agent_query(req: QueryRequest):
         broadcast_event({'type': 'done'})
 
     return StreamingResponse(run_agent(), media_type="text/event-stream")
+
+
+@app.get("/file/{path:path}")
+async def serve_file(path: str):
+    """Serve a sandbox file as plain text."""
+    from fastapi.responses import PlainTextResponse
+    from pathlib import Path
+    filepath = Path("state/sandbox") / path
+    if not filepath.exists():
+        return PlainTextResponse("File not found", status_code=404)
+    return PlainTextResponse(filepath.read_text())
 
 
 @app.get("/")

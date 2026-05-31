@@ -292,11 +292,11 @@ async def index_document(path: str, chunk_size: int = 400, overlap: int = 80) ->
 
 
 @mcp.tool()
-async def search_knowledge(query: str, k: int = 3) -> str:
+async def search_knowledge(query: str, k: int = 5) -> str:
     """Vector search over previously indexed fact chunks. Returns the top k
-    most relevant chunks (default 3, max 5). Use this rather than re-fetching
+    most relevant chunks (default 5, max 8). Use this rather than re-fetching
     or re-reading source files when Memory already contains indexed chunks."""
-    k = min(k, 5)
+    k = min(k, 8)
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
     from memory import memory
