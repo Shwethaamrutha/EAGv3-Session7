@@ -130,7 +130,7 @@
 | G | "Credit assignment" semantic recall | 2 |
 | H | ReAct vs CoT cross-document synthesis | 2 |
 
-<details><summary>View all base query screenshots</summary>
+<details><summary><h3>Click to expand: Base Query Screenshots (A-H)</h3></summary>
 
 **Query A — Shannon Wikipedia**
 ![A-1](screenshots/A-1.png)
@@ -197,7 +197,7 @@
 
 **No-corpus test:** "Tell me more about the case study on multilingual news article classification" — without the PEFT paper indexed, the agent responds "This information is not in the indexed knowledge base." With the paper indexed, it retrieves the relevant chunks and answers correctly.
 
-<details><summary>View all custom query screenshots</summary>
+<details><summary><h3>Click to expand: Custom RAG Query Screenshots (1-6 + No-Corpus)</h3></summary>
 
 **Custom Query 1 — LoRA Rank (Direct)**
 ![Custom-A1](screenshots/Custom-A1.png)
