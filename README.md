@@ -248,20 +248,21 @@
 
 ---
 
-**Custom Query 4 — Theoretical/PEFT (Direct)**
+**Custom Query 4 — Theoretical (Direct)**
 ![Custom-D1](screenshots/Custom-D1.png)
 ![Custom-D2](screenshots/Custom-D2.png)
 
 ---
 
-**Custom Query 5 — Stability-Plasticity Dilemma (Semantic Recall)**
+**Custom Query 6 — Compute Savings (Semantic Recall)**
+
 ![Custom-E1-Sem](screenshots/Custom-E1-Sem.png)
 ![Custom-E2-Sem](screenshots/Custom-E2-Sem.png)
 ![Custom-E3-Sem](screenshots/Custom-E3-Sem.png)
 
 ---
+**Custom Query 5 — Stability-Plasticity Dilemma (Semantic Recall)**
 
-**Custom Query 6 — Compute Savings (Semantic Recall)**
 ![Custom-F1-Sem](screenshots/Custom-F1-Sem.png)
 ![Custom-F2-Sem](screenshots/Custom-F2-Sem.png)
 ![Custom-F3-Sem](screenshots/Custom-F3-Sem.png)
