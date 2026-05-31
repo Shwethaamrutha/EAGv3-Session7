@@ -1,6 +1,23 @@
-# ÄXON — RAG Research Agent
+# ÄXON
 
-A four-role agentic architecture (Memory, Perception, Decision, Action) with FAISS vector retrieval, built on the Session 6 agent. Includes a Chrome extension for indexing any webpage and a live pipeline dashboard.
+### Semantic Research Agent with FAISS Vector Retrieval
+
+> *Index any webpage. Ask questions across your knowledge. Get answers grounded in what you've read — not what the LLM imagines.*
+
+[![Python](https://img.shields.io/badge/Python-3.11+-blue)](https://python.org)
+[![FAISS](https://img.shields.io/badge/FAISS-IndexFlatIP-green)](https://github.com/facebookresearch/faiss)
+[![Gemini](https://img.shields.io/badge/Embedding-Gemini%20768d-orange)](https://ai.google.dev)
+[![Chrome](https://img.shields.io/badge/Chrome-Extension-yellow)](chrome_extension/)
+
+---
+
+**ÄXON** is a four-role agentic architecture (Memory → Perception → Decision → Action) extended with FAISS vector retrieval for semantic search across indexed documents. Built as Session 7 of the [EAG V3](https://theschoolof.ai) program.
+
+**What makes it different:**
+- Queries work when your **words don't match** the indexed text (semantic recall)
+- A Chrome extension lets you **index any webpage** with one click
+- A live dashboard shows **every pipeline step** in real-time
+- Knowledge **persists across sessions** via FAISS on disk
 
 ## Architecture
 
@@ -63,26 +80,32 @@ A four-role agentic architecture (Memory, Perception, Decision, Action) with FAI
                                               └──────────────────────┘
 ```
 
-### Session 7 additions (over Session 6):
-1. **Gateway `embed()`** — Gemini embedding-001 primary (better quality), Ollama nomic-embed-text fallback, 768-d vectors
-2. **`MemoryItem.embedding`** — optional field, computed at insert for fact items only
-3. **FAISS vector search** — IndexFlatIP with L2-normalized cosine similarity, keyword fallback on cold start
-4. **Two new MCP tools** — `index_document` (chunking + indexing) and `search_knowledge` (vector retrieval)
-5. **Chrome extension** — click + to index any page, side panel chat
-6. **Live pipeline dashboard** — real-time iteration logs, retrieved chunks, answer rendering
+---
 
-### Key design decisions:
-- **Only `add_fact` writes to FAISS** — tool_outcomes and query classifications stay in keyword search only, keeping the vector index clean
-- **Gemini embeddings** — nomic-embed-text had poor ranking quality (wrong chunk ranked first); Gemini ranks correctly
-- **Perception/search_knowledge consistency** — both use top_k=5 to prevent hallucination from descriptor/content gaps
-- **No truncation** — Decision sees full tool results and chunk content for accurate synthesis
-- **Hybrid scoring** — FAISS cosine similarity + keyword overlap boost for edge cases
-- **LaTeX cleanup** — strips math artifacts from arxiv papers before chunking
+### What Session 7 adds over Session 6:
 
-### Architectural integrity:
-- Perception's SYSTEM prompt contains **zero MCP tool names** (grep test passes)
-- Tool-selection guidance lives in Decision's SYSTEM and tool docstrings
-- FAISS index reloaded from disk on every call for cross-process consistency
+| Component | Addition |
+|-----------|----------|
+| Gateway | `embed()` — Gemini 768-d primary, Ollama fallback |
+| Schema | `MemoryItem.embedding` — stored at insert for fact items |
+| Memory | FAISS IndexFlatIP vector search, keyword fallback |
+| MCP Tools | `index_document` (chunk + embed) and `search_knowledge` (vector query) |
+| Frontend | Chrome extension + live pipeline dashboard |
+
+### Design decisions that matter:
+
+| Decision | Why |
+|----------|-----|
+| Only `add_fact` → FAISS | Keeps vector index clean (no tool_outcome noise) |
+| Gemini over nomic-embed-text | Correct ranking (nomic put wrong chunk first) |
+| top_k=5 everywhere | Perception and search_knowledge see same data (prevents hallucination) |
+| No truncation | Decision sees full chunks — was the root cause of search_knowledge loops |
+| Hybrid scoring | Cosine similarity + keyword boost for edge cases |
+
+### Architectural rules (carried from Session 6):
+- `grep` test: **zero MCP tool names** in Perception's SYSTEM prompt
+- Tool-selection guidance lives in Decision's SYSTEM + tool docstrings
+- FAISS reloaded from disk on every call (cross-process consistency)
 
 ## Base Query Traces (A-H)
 
