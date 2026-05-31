@@ -5,6 +5,7 @@ Substrate: LLM Gateway V3 with retry/backoff
 Transport: MCP over stdio
 """
 from __future__ import annotations
+import sys; sys.path.insert(0, "agent")
 
 import asyncio
 import json

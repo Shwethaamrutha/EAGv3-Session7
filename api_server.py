@@ -1,6 +1,8 @@
 """Backend API for Chrome Extension — indexes pages and answers queries via FAISS."""
 from __future__ import annotations
 
+import sys; sys.path.insert(0, "agent")
+
 import json
 import uuid
 import numpy as np

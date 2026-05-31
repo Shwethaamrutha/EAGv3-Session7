@@ -1,5 +1,6 @@
 """Agent6 CLI Chat — interactive REPL interface similar to Claude Code."""
 from __future__ import annotations
+import sys; sys.path.insert(0, "agent")
 
 import asyncio
 import json

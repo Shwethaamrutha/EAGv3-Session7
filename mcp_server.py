@@ -8,6 +8,7 @@ Heavy deps (crawl4ai, duckduckgo-search) are lazy-imported inside tool functions
 to keep subprocess startup fast (~1s instead of ~8s).
 """
 from __future__ import annotations
+import sys; sys.path.insert(0, "agent")
 
 import asyncio
 import json
