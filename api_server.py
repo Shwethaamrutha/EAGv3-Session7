@@ -315,6 +315,14 @@ async def remove_source(req: QueryRequest):
     return {"status": "removed", "removed": removed_count, "remaining": len(kept)}
 
 
+@app.post("/new")
+async def new_session():
+    """Simulate a fresh process — reload memory from disk (persisted FAISS stays intact)."""
+    memory._load()
+    facts = [i for i in memory._items if i.kind == "fact" and i.value.get("chunk")]
+    return {"status": "new_session", "persisted_chunks": len(facts), "total_items": memory.item_count}
+
+
 @app.post("/clear")
 async def clear_state():
     """Clear all indexed data and FAISS index."""

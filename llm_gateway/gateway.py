@@ -427,7 +427,7 @@ class GatewayClient:
             pass
 
     def embed(self, text: str, *, task_type: str = "retrieval_document") -> list[float] | None:
-        """Get a 768-d embedding vector. Tries Gemini first (better quality), then Ollama fallback."""
+        """Get a 768-d embedding vector. Gemini primary (better quality), Ollama fallback."""
         vec = self._embed_gemini(text, task_type=task_type)
         if vec is not None:
             return vec

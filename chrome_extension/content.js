@@ -2,7 +2,7 @@
 const btn = document.createElement("div");
 btn.id = "rag-index-btn";
 btn.innerHTML = "+";
-btn.title = "Add this page to RAG knowledge base";
+btn.title = "Add to ÄXON";
 document.body.appendChild(btn);
 
 let isIndexing = false;
@@ -48,7 +48,7 @@ btn.addEventListener("click", async () => {
     setTimeout(() => {
       btn.innerHTML = "+";
       btn.classList.remove("error");
-      btn.title = "Add this page to RAG knowledge base";
+      btn.title = "Add to ÄXON";
       isIndexing = false;
     }, 3000);
   }

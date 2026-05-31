@@ -249,7 +249,7 @@ async def index_document(path: str, chunk_size: int = 400, overlap: int = 80) ->
         text = target.read_text()
         source_label = f"sandbox:{clean_path}"
 
-    # Strip noisy sections before chunking
+    # Clean noisy content before chunking
     import re as _re
     # Remove everything after References/Acknowledgements
     for pattern in [r'(?i)## References.*', r'(?i)## Acknowledgements.*']:
@@ -258,6 +258,20 @@ async def index_document(path: str, chunk_size: int = 400, overlap: int = 80) ->
     text = _re.sub(r'(?i)Provided proper attribution.*?(?=\n#|\n\n)', '', text)
     # Remove citation list noise
     text = _re.sub(r'\* \[\d+\].*?\n', '', text)
+    # Remove LaTeX/math rendering artifacts aggressively
+    text = _re.sub(r'\\[a-zA-Z]+\{[^}]*\}', '', text)  # \command{...}
+    text = _re.sub(r'\\[a-zA-Z]+', '', text)  # \command
+    text = _re.sub(r'\{[^}]*pgf[^}]*\}', '', text)
+    text = _re.sub(r'start_POSTSUPERSCRIPT.*?end_POSTSUPERSCRIPT', '', text)
+    text = _re.sub(r'start_POSTSUBSCRIPT.*?end_POSTSUBSCRIPT', '', text)
+    text = _re.sub(r'blackboard_[A-Z]\s*', '', text)
+    text = _re.sub(r'italic_\w+', '', text)
+    text = _re.sub(r'[𝐀-𝐳𝑎-𝑧𝛼-𝜔𝚫𝚲]+', '', text)  # math unicode
+    text = _re.sub(r'←|→|⋅|≤|≥|∈|⁢|⊤', ' ', text)  # math symbols
+    text = _re.sub(r'\|[^|]*\|_[A-Z]', '', text)  # norms like ||X||_F
+    # Clean up excessive whitespace from removals
+    text = _re.sub(r'\n{3,}', '\n\n', text)
+    text = _re.sub(r' {2,}', ' ', text)
 
     # Sliding window chunking
     words = text.split()

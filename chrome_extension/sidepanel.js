@@ -63,7 +63,7 @@ function addMessage(role, text, sources) {
 }
 
 async function sendQuery() {
-  const query = input.value.trim();
+  const query = input.value.replace(/\s+/g, ' ').trim();
   if (!query || isQuerying) return;
 
   if (query === "/clear") {
@@ -79,7 +79,7 @@ async function sendQuery() {
       const data = await r.json();
       const empty2 = chat.querySelector(".empty-state");
       if (empty2) empty2.remove();
-      addMessage("bot", `New session started. FAISS index persisted: ${data.persisted_chunks} chunks still available.`);
+      addMessage("bot", `New session. FAISS index persisted: ${data.persisted_chunks} chunks available.`);
     } catch (e) {
       addMessage("bot", "Error: " + e.message);
     }

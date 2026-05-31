@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "RAG Research Assistant",
+  "name": "ÄXON",
   "version": "1.0.0",
   "description": "Index any webpage into your FAISS knowledge base and chat across all indexed pages",
   "permissions": ["activeTab", "sidePanel", "storage"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_icon": "icons/icon48.png",
-    "default_title": "RAG Assistant"
+    "default_title": "ÄXON"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
