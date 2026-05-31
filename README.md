@@ -86,156 +86,46 @@ A four-role agentic architecture (Memory, Perception, Decision, Action) with FAI
 
 ## Base Query Traces (A-H)
 
-### Query A — Shannon Wikipedia (2 iterations)
+| Query | Description | Iterations |
+|-------|-------------|-----------|
+| A | Shannon Wikipedia (fetch + extract) | 2 |
+| B | Tokyo activities + weather (multi-goal) | 3 |
+| C Run 1 | Mom's birthday (remember + create files) | 4 |
+| C Run 2 | Recall birthday (FAISS retrieval) | 1 |
+| D | Asyncio synthesis (web search + synthesize) | 2 |
+| E | Index attention.md + extract contributions | 3 |
+| F Run 1 | Index all 5 papers | 5 |
+| F Run 2 | Cross-run recall (persisted FAISS) | 2 |
+| G | "Credit assignment" semantic recall | 2 |
+| H | ReAct vs CoT cross-document synthesis | 2 |
 
-<details><summary>View trace & screenshots</summary>
+<details><summary>View all base query screenshots</summary>
 
-```
-18:53:46
-[memory]
-Query: "Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory."
-18:53:46
-[faiss]
-Embedding query via Gemini embedding...
-18:53:46
-[memory]
-memory.remember() → skipped (action query, not a personal fact)
-Iteration 1
-18:53:47
-[memory]
-Iter 1: memory.read() → 0 hits
-18:53:51
-[perception]
-Goals:
-  → Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract his birth date, death date, and three key contributions to information theory.
-18:53:53
-[decision]
-TOOL: fetch_url({"url": "https://en.wikipedia.org/wiki/Claude_Shannon"})
-18:53:57
-[action]
-fetch_url → [artifact art:067c3fd99a6a0ae8, 80201 bytes] preview: # Claude Shannon - Wikipedia  American mathema
-Iteration 2
-18:53:57
-[memory]
-Iter 2: memory.read() → 1 hits
-18:54:00
-[perception]
-Goals:
-  → Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract his birth date, death date, and three key contributions to information theory.
-18:54:07
-[decision]
-ANSWER: **Claude Shannon — Key Facts**
-
-- **Born:** April 30, 1916
-- **Died:** February ...
-18:54:07
-[memory]
-Done.
-```
-
+**Query A — Shannon Wikipedia**
 ![A-1](screenshots/A-1.png)
 ![A-2](screenshots/A-2.png)
 
-</details>
-
-### Query B — Tokyo Activities + Weather (3 iterations)
-
-<details><summary>View trace & screenshots</summary>
-
-```
-[memory]     Iter 1: memory.read() → 0 hits
-[decision]   TOOL: web_search({"query": "family-friendly things to do in Tokyo..."})
-[action]     web_search → [artifact, 15905 bytes]
-[memory]     Iter 2: memory.read() → 2 hits
-[decision]   TOOL: fetch_url({"url": "https://wttr.in/Tokyo?format=3"})
-[action]     fetch_url → # wttr.in - Weather Report
-[memory]     Iter 3: memory.read() → 3 hits
-[decision]   ANSWER: Tokyo +20°C sunny. Recommended: outdoor activity...
-```
-
+**Query B — Tokyo Activities + Weather**
 ![B-1](screenshots/B-1.png)
 ![B-2](screenshots/B-2.png)
 ![B-3](screenshots/B-3.png)
 
-</details>
-
-### Query C — Memory Persistence (Run 1: 4 iters, Run 2: 1 iter)
-
-<details><summary>View trace & screenshots</summary>
-
-```
-Run 1:
-[memory]     memory.remember() → stored [fact] Mom's birthday May 15, 2026
-[decision]   TOOL: create_file({"path": "mom_birthday_reminder_2weeks.ics"...})
-[decision]   TOOL: create_file({"path": "mom_birthday_reminder_ontheday.ics"...})
-
-Run 2 (fresh process):
-[memory]     Iter 1: memory.read() → 2 hits (FAISS)
-[decision]   ANSWER: Your mom's birthday is **May 15, 2026**.
-```
-
+**Query C — Memory Persistence**
 ![C-1](screenshots/C-1.png)
 ![C-2](screenshots/C-2.png)
 ![C-3](screenshots/C-3.png)
 
-</details>
-
-### Query D — Asyncio Synthesis (2 iterations)
-
-<details><summary>View trace & screenshots</summary>
-
-```
-[memory]     Iter 1: memory.read() → 0 hits
-[decision]   TOOL: web_search({"query": "Python asyncio best practices"})
-[action]     web_search → [artifact, 8820 bytes] (full Tavily content)
-[memory]     Iter 2: memory.read() → 5 hits
-[decision]   ANSWER: **Python asyncio Best Practices (Common Advice Across Sources)**
-```
-
+**Query D — Asyncio Synthesis**
 ![D-1](screenshots/D-1.png)
 ![D-2](screenshots/D-2.png)
 
-</details>
-
-### Query E — Index + Extract (3 iterations)
-
-<details><summary>View trace & screenshots</summary>
-
-```
-[memory]     Iter 1: memory.read() → 1 hits
-[decision]   TOOL: index_document({"path": "papers/attention.md"})
-[action]     index_document → Indexed 3 chunks
-[memory]     Iter 2: memory.read() → 3 hits (FAISS)
-[decision]   TOOL: search_knowledge({"query": "key contributions Transformer architecture"})
-[action]     search_knowledge → [sandbox:papers/attention.md chunk 2/3]
-[memory]     Iter 3: memory.read() → 3 hits (FAISS)
-[decision]   ANSWER: ## Three Key Contributions of the Transformer Architecture
-```
-
+**Query E — Index + Extract**
 ![E-1](screenshots/E-1.png)
 ![E-2](screenshots/E-2.png)
 ![E-3](screenshots/E-3.png)
 ![E-4](screenshots/E-4.png)
 
-</details>
-
-### Query F — Index All + Cross-Run (Run 1: 5 iters, Run 2: 2 iters)
-
-<details><summary>View trace & screenshots</summary>
-
-```
-Run 1:
-[decision]   TOOL: index_document({"path": "papers/cot.md"})     → 2 chunks
-[decision]   TOOL: index_document({"path": "papers/dpo.md"})     → 21 chunks
-[decision]   TOOL: index_document({"path": "papers/lora.md"})    → 6 chunks
-[decision]   TOOL: index_document({"path": "papers/react.md"})   → 2 chunks
-
-Run 2 (/new — fresh process, persisted FAISS):
-[memory]     Iter 1: memory.read() → 5 hits (FAISS)
-[decision]   TOOL: search_knowledge({"query": "chain-of-thought reasoning..."})
-[decision]   ANSWER: ## Chain-of-Thought Reasoning: Synthesis from Indexed Papers
-```
-
+**Query F — Index All + Cross-Run Persistence**
 ![F-1](screenshots/F-1.png)
 ![F-2](screenshots/F-2.png)
 ![F-3](screenshots/F-3.png)
@@ -244,40 +134,12 @@ Run 2 (/new — fresh process, persisted FAISS):
 ![F-6](screenshots/F-6.png)
 ![F-7](screenshots/F-7.png)
 
-</details>
-
-### Query G — Semantic Recall: "Credit Assignment" (2 iterations)
-
-<details><summary>View trace & screenshots</summary>
-
-```
-[memory]     Iter 1: memory.read() → 5 hits (FAISS)
-[decision]   TOOL: search_knowledge({"query": "credit assignment problem"})
-[action]     search_knowledge → [sandbox:papers/cot.md chunk 1/2] (backpropagation through reasoning)
-[memory]     Iter 2: memory.read() → 5 hits (FAISS)
-[decision]   ANSWER: ## Credit Assignment Across the Indexed Papers
-```
-
-*Note: "credit assignment" does NOT appear in any chunk. FAISS finds it via semantic similarity to "reward shaping" (DPO) and "backpropagation through reasoning steps" (CoT).*
-
+**Query G — Semantic Recall ("credit assignment" not in chunks)**
 ![G-1](screenshots/G-1.png)
 ![G-2](screenshots/G-2.png)
 ![G-3](screenshots/G-3.png)
 
-</details>
-
-### Query H — Cross-Document Synthesis (2 iterations)
-
-<details><summary>View trace & screenshots</summary>
-
-```
-[memory]     Iter 1: memory.read() → 5 hits (FAISS)
-[decision]   TOOL: search_knowledge({"query": "intermediate reasoning treatment..."})
-[action]     search_knowledge → [sandbox:papers/react.md chunk 0/2], [sandbox:papers/cot.md chunk 1/2]
-[memory]     Iter 2: memory.read() → 5 hits (FAISS)
-[decision]   ANSWER: ## Treatment of Intermediate Reasoning: ReAct vs. Chain-of-Thought
-```
-
+**Query H — Cross-Document Synthesis**
 ![H-1](screenshots/H-1.png)
 ![H-2](screenshots/H-2.png)
 ![H-3](screenshots/H-3.png)
@@ -293,77 +155,52 @@ Run 2 (/new — fresh process, persisted FAISS):
 - QDyLoRA: Quantized Dynamic Low-Rank Adaptation (2402.10462)
 - Comparison between PEFT techniques and full fine-tuning (2308.07282)
 
-| # | Query | With Index | Without Index | Semantic? |
-|---|-------|-----------|---------------|-----------|
-| 1 | "What rank is sufficient for LoRA adaptation on downstream tasks?" | 1-2 iters (FAISS) | Web search needed | No |
-| 2 | "What are intruder dimensions and why do they cause forgetting?" | 1-2 iters (FAISS) | Web search needed | No |
-| 3 | "How does dynamic rank selection work during training?" | 1-2 iters (FAISS) | Web search needed | No |
-| 4 | "How do these methods handle the stability-plasticity dilemma?" | 1-2 iters (FAISS) | Web search needed | Yes — "stability-plasticity dilemma" not in chunks |
-| 5 | "Which approach gives the best bang for your buck in compute savings?" | 1-2 iters (FAISS) | Web search needed | Yes — "bang for your buck" not in chunks |
+| # | Query | Semantic? |
+|---|-------|-----------|
+| 1 | "What rank is sufficient for LoRA adaptation on downstream tasks?" | No |
+| 2 | "What are intruder dimensions and why do they cause forgetting?" | No |
+| 3 | "How does dynamic rank selection work during training?" | No |
+| 4 | "How do these methods handle the stability-plasticity dilemma?" | Yes |
+| 5 | "Which approach gives the best bang for your buck in compute savings?" | Yes |
 
-<details><summary>Custom Query 1 — LoRA Rank (Direct)</summary>
+<details><summary>View all custom query screenshots</summary>
 
+**Custom Query 1 — LoRA Rank (Direct)**
 ![Custom-A1](screenshots/Custom-A1.png)
 ![Custom-A2](screenshots/Custom-A2.png)
 ![Custom-A3](screenshots/Custom-A3.png)
 
-</details>
-
-<details><summary>Custom Query 2 — Intruder Dimensions (Direct)</summary>
-
+**Custom Query 2 — Intruder Dimensions (Direct)**
 ![Custom-B1](screenshots/Custom-B1.png)
 ![Custom-B2](screenshots/Custom-B2.png)
 ![Custom-B3](screenshots/Custom-B3.png)
 
-</details>
-
-<details><summary>Custom Query 3 — QDyLoRA Dynamic Rank (Direct)</summary>
-
+**Custom Query 3 — QDyLoRA Dynamic Rank (Direct)**
 ![Custom-C1](screenshots/Custom-C1.png)
 ![Custom-C2](screenshots/Custom-C2.png)
 ![Custom-C3](screenshots/Custom-C3.png)
 
-</details>
-
-<details><summary>Custom Query 4 — Theoretical/PEFT (Direct)</summary>
-
+**Custom Query 4 — Theoretical/PEFT (Direct)**
 ![Custom-D1](screenshots/Custom-D1.png)
 ![Custom-D2](screenshots/Custom-D2.png)
 
-</details>
-
-<details><summary>Custom Query 5 — Stability-Plasticity Dilemma (Semantic Recall)</summary>
-
-*"Stability-plasticity dilemma" does not appear in any chunk. FAISS maps it semantically to "forgetting" and "intruder dimensions".*
-
+**Custom Query 5 — Stability-Plasticity Dilemma (Semantic Recall)**
 ![Custom-E1-Sem](screenshots/Custom-E1-Sem.png)
 ![Custom-E2-Sem](screenshots/Custom-E2-Sem.png)
 ![Custom-E3-Sem](screenshots/Custom-E3-Sem.png)
 
-</details>
-
-<details><summary>Custom Query 6 — Compute Savings (Semantic Recall)</summary>
-
-*"Bang for your buck" does not appear in any chunk. FAISS maps it to parameter reduction and memory efficiency discussions.*
-
+**Custom Query 6 — Compute Savings (Semantic Recall)**
 ![Custom-F1-Sem](screenshots/Custom-F1-Sem.png)
 ![Custom-F2-Sem](screenshots/Custom-F2-Sem.png)
 ![Custom-F3-Sem](screenshots/Custom-F3-Sem.png)
 
-</details>
-
-<details><summary>No-Corpus Comparison</summary>
-
-*Same query without indexed content — agent falls back to web search (slower, more iterations):*
-
+**No-Corpus Comparison**
 ![Custom-G1-Nocorpus](screenshots/Custom-G1-Nocorpus.png)
-
-*After indexing — answers from FAISS in 1-2 iterations:*
-
 ![Custom-G2-afterIndex](screenshots/Custom-G2-afterIndex.png)
 ![Custom-G3-afterIndex](screenshots/Custom-G3-afterIndex.png)
 
 </details>
+
 
 ## How to Run
 
