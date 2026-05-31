@@ -88,11 +88,46 @@ A four-role agentic architecture (Memory, Perception, Decision, Action) with FAI
 
 ### Query A — Shannon Wikipedia (2 iterations)
 ```
-[memory]     Iter 1: memory.read() → 0 hits
-[decision]   TOOL: fetch_url({"url": "https://en.wikipedia.org/wiki/Claude_Shannon"})
-[action]     fetch_url → [artifact, 80201 bytes]
-[memory]     Iter 2: memory.read() → 1 hits
-[decision]   ANSWER: **Claude Shannon — Key Facts**
+18:53:46
+[memory]
+Query: "Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory."
+18:53:46
+[faiss]
+Embedding query via Gemini embedding...
+18:53:46
+[memory]
+memory.remember() → skipped (action query, not a personal fact)
+Iteration 1
+18:53:47
+[memory]
+Iter 1: memory.read() → 0 hits
+18:53:51
+[perception]
+Goals:
+  → Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract his birth date, death date, and three key contributions to information theory.
+18:53:53
+[decision]
+TOOL: fetch_url({"url": "https://en.wikipedia.org/wiki/Claude_Shannon"})
+18:53:57
+[action]
+fetch_url → [artifact art:067c3fd99a6a0ae8, 80201 bytes] preview: # Claude Shannon - Wikipedia  American mathema
+Iteration 2
+18:53:57
+[memory]
+Iter 2: memory.read() → 1 hits
+18:54:00
+[perception]
+Goals:
+  → Fetch https://en.wikipedia.org/wiki/Claude_Shannon and extract his birth date, death date, and three key contributions to information theory.
+18:54:07
+[decision]
+ANSWER: **Claude Shannon — Key Facts**
+
+- **Born:** April 30, 1916
+- **Died:** February ...
+18:54:07
+[memory]
+Done.
 ```
 
 ### Query B — Tokyo Activities + Weather (3 iterations)
