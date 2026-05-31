@@ -5,26 +5,62 @@ A four-role agentic architecture (Memory, Perception, Decision, Action) with FAI
 ## Architecture
 
 ```
-User Query
-    |
-    v
-memory.remember() ---> classify & store personal facts
-    |
-    v
-memory.read() ---> FAISS vector search (Gemini 768-d, cosine similarity)
-    |                     |
-    |               [fallback: keyword overlap]
-    v
-Perception (sees FAISS hits, decomposes goals)
-    |
-    v
-Decision (select tool or answer from retrieved context)
-    |
-    v
-Action (MCP tool dispatch)
-    |
-    v
-memory.record_outcome() ---> stored in memory.json (not FAISS)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              USER QUERY                                      │
+└────────────────────────────────────┬────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ░░ MEMORY.REMEMBER ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
+│  Classify query → store personal facts (birthday, preferences)              │
+│  Scratchpad items skipped for action queries                                │
+└────────────────────────────────────┬────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ▓▓ MEMORY.READ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │
+│                                                                             │
+│  ┌─────────────────────┐    ┌──────────────────────────────────────────┐    │
+│  │  Embed Query         │    │  FAISS IndexFlatIP                       │    │
+│  │  Gemini 768-d        │───▶│  Cosine similarity search                │    │
+│  │                      │    │  Top-5 most similar chunks               │    │
+│  └─────────────────────┘    └──────────────┬───────────────────────────┘    │
+│                                             │                               │
+│                              [if no FAISS hits: keyword fallback]            │
+└────────────────────────────────────┬────────────────────────────────────────┘
+                                     │ hits (chunk descriptors)
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ◆◆ PERCEPTION ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆  │
+│  Sees: query + FAISS hits + history                                         │
+│  Outputs: ordered goals (✓ done / → open)                                  │
+│  Rule: TOOL-BLIND — never sees or names MCP tools                           │
+└────────────────────────────────────┬────────────────────────────────────────┘
+                                     │ goals
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ★★ DECISION ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★  │
+│  Sees: goal + hits + attached artifacts + history + tool catalog             │
+│  Outputs: ANSWER (from context) OR one TOOL CALL                            │
+│                                                                             │
+│  Tools: web_search | fetch_url | index_document | search_knowledge          │
+│         read_file | create_file | list_dir | get_time | ...                  │
+└───────────────┬─────────────────────────────────┬───────────────────────────┘
+                │ (answer)                         │ (tool call)
+                ▼                                  ▼
+┌───────────────────────────┐    ┌────────────────────────────────────────────┐
+│         ANSWER             │    │  ◈◈ ACTION ◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈◈  │
+│  Streamed to user          │    │  Execute MCP tool via stdio subprocess     │
+│                            │    │  Result → memory.record_outcome()          │
+└───────────────────────────┘    │  Large results → artifact store            │
+                                  └──────────────────────┬───────────────────┘
+                                                         │
+                                                         ▼
+                                              ┌──────────────────────┐
+                                              │  NEXT ITERATION      │
+                                              │  (loop back to       │
+                                              │   memory.read)       │
+                                              └──────────────────────┘
 ```
 
 ### Session 7 additions (over Session 6):
